@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block body %}
+{% include "_ideas_seg.html" %}
+{% if view == "new" %}
+<p class="muted">Stocks you don't own: {% if advisor is defined %}new {{ advisor.label }} picks and {% endif %}insider buying, last {{ days }} days{% if ran %} · checked {{ ran }}{% endif %}. Ideas to look into, not advice.</p>
+{% else %}
+<p class="muted">Return since the idea was flagged, vs the S&amp;P 500 over the same days.</p>
+{% endif %}
+
+{% for c in cards %}{% set q = c.q %}
+<div class="card">
+<div class="t">{% if c.both %}⭐ {% endif %}<a href="/holding/{{ c.ticker }}">{{ c.ticker }}</a> <span class="muted">{{ c.name or q.name or "" }}{% if c.sector %} · {{ c.sector }}{% endif %}</span></div>
+<div class="s">{{ icons.get(c.source, "💡") }} {{ c.headline }}{% if c.both %} · <b>both sources</b>{% endif %}</div>
+{% if c.why %}<div class="s">{{ c.why }}</div>{% endif %}
+{% if c.people %}<details class="m"><summary>Who bought</summary>{% for p in c.people %}<div>{{ p.owner }} ({{ p.role }}): {{ usd(p.value) }}, last {{ p.last }}</div>{% endfor %}</details>{% endif %}
+{% if q.price %}
+<div class="m">${{ "{:,.2f}".format(q.price) }}{% if c.range_pos is not none %} · {{ "%.0f" | format(c.range_pos * 100) }}% of its 52-week range{% endif %}{% if c.vs200 is not none %} · <span class="{{ 'positive' if c.vs200 >= 0 else 'negative' }}">{{ pct(c.vs200) }}</span> vs 200-day avg{% endif %}{% if q.market_cap %} · {{ usd(q.market_cap) }}{% endif %}</div>
+<div class="m">{% if q.rating %}Street: {{ q.rating | replace("_", " ") }}{% if q.analysts %} ({{ q.analysts }} analysts){% endif %}{% endif %}{% if q.target_mean %} · target ${{ "{:,.0f}".format(q.target_mean) }} ({{ pct(q.target_mean / q.price - 1) }}){% endif %}{% if c.upgrades or c.downgrades or c.raised or c.cut %} · 30 days:{% if c.upgrades %} {{ c.upgrades }}⬆️{% endif %}{% if c.downgrades %} {{ c.downgrades }}⬇️{% endif %}{% if c.raised %} {{ c.raised }} targets raised{% endif %}{% if c.cut %} {{ c.cut }} cut{% endif %}{% endif %}</div>
+{% endif %}
+<div class="m">{% if c.earn_days is not none %}Earnings {{ q.earnings_date }} (in {{ c.earn_days }} days) · {% endif %}{% if c.via_funds >= 100 %}You own ${{ "{:,.0f}".format(c.via_funds) }} via funds · {% endif %}Flagged {{ c.flagged }}{% if c.price %} at ${{ "{:,.2f}".format(c.price) }}{% endif %}{% if c.ret is not none and c.flagged != ran %} · since: <span class="{{ 'positive' if c.ret >= 0 else 'negative' }}">{{ pct(c.ret) }}</span>{% if c.sp_ret is not none %} (S&amp;P {{ pct(c.sp_ret) }}){% endif %}{% endif %}</div>
+<div class="m">{% for status, label in ([("watch", "Watch"), ("dismissed", "Dismiss")] if view == "new" else [("new", "Stop watching")]) %}<form class="inline" method="post" action="/ideas/status"><input type="hidden" name="key" value="{{ c.key }}"><input type="hidden" name="status" value="{{ status }}"><input type="hidden" name="view" value="{{ view }}"><button class="link">{{ label }}</button></form>{% endfor %}</div>
+</div>
+{% else %}
+<p class="muted">{% if view == "new" %}No new ideas in the last {{ days }} days.{% else %}Nothing watched yet: tap Watch on an idea under New.{% endif %}</p>
+{% endfor %}
+
+{% if view == "watching" %}
+<h2>How the ideas did</h2>
+<p class="muted">Every idea, watched or not, 30 days after it was flagged.</p>
+<table>
+<tr><th>Source</th><th>Ideas</th><th>Avg 30 days</th><th>S&amp;P 500</th><th>Beat S&amp;P</th></tr>
+{% for s in score %}
+<tr><td>{{ s.source }}</td><td>{{ s.n }}{% if s.pending %} <span class="muted">(+{{ s.pending }} pending)</span>{% endif %}</td>
+{% if s.n >= 5 %}<td class="{{ 'positive' if s.avg >= 0 else 'negative' }}">{{ pct(s.avg) }}</td><td class="muted">{{ pct(s.sp500) }}</td><td>{{ pct(s.beat, False) }}</td>
+{% else %}<td colspan="3" class="muted">needs 5+ ideas</td>{% endif %}</tr>
+{% endfor %}
+</table>
+{% endif %}
+{% endblock %}

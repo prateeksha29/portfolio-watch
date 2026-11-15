@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_tools.html" import toolbar %}
+{% block body %}
+{% set seg = "Research" %}{% include "_seg.html" %}
+{{ toolbar("research-rows", [("weight", "Largest position", "Default", "asc"), ("up", "Today: up most", "Day", "desc"),
+   ("down", "Today: down most", "Day", "asc"), ("month", "1 month", "Month", "desc"), ("upside", "Analyst upside", "Upside", "desc"),
+   ("stories", "Most news", "Stories", "desc")], prices, "/holdings", auto) }}
+<p class="m">{% if as_of %}<span id="price-asof" data-live>{{ as_of }}</span> · {% endif %}Upside: analyst target vs price · Stories: last 3 days</p>
+<table>
+<thead><tr><th>Ticker</th><th>Weight</th><th>Price</th><th>1 day</th><th>1 mo</th><th>Upside</th><th>Stories</th><th>Sentiment</th></tr></thead>
+<tbody id="research-rows" data-live>
+{% for h in rows %}
+<tr data-s-day="{{ h.day if h.day is not none else '' }}" data-s-month="{{ h.month if h.month is not none else '' }}"
+    data-s-upside="{{ h.upside if h.upside is not none else '' }}" data-s-stories="{{ h.count }}"><td><a href="/holding/{{ h.ticker }}">{{ h.ticker }}</a> <span class="muted">{{ h.name }}</span></td>
+<td>{{ "%.1f" | format(h.weight * 100) }}%</td>
+<td>{{ "${:,.2f}".format(h.price) if h.price else "–" }}</td>
+<td class="{{ '' if h.day is none else ('positive' if h.day >= 0 else 'negative') }}">{{ pct(h.day) if h.day is not none else "–" }}</td>
+<td class="{{ '' if h.month is none else ('positive' if h.month >= 0 else 'negative') }}">{{ pct(h.month) if h.month is not none else "–" }}</td>
+<td>{{ pct(h.upside) if h.upside is not none else "–" }}</td>
+<td>{{ h.count }}</td>
+<td><span class="positive">{{ h.pos }}</span> / <span class="negative">{{ h.neg }}</span> / <span class="mixed">{{ h.mix }}</span></td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h2>Biggest real exposures</h2>
+<p class="muted">Direct shares plus your slice of each fund.</p>
+<table>
+<tr><th>Stock</th><th>Direct</th><th>Through funds</th><th>Total</th><th>Of portfolio</th></tr>
+{% for e in exposures %}
+<tr><td><a href="/holding/{{ e.ticker }}">{{ e.ticker }}</a>{% if not e.owned %} <span class="muted">via funds only</span>{% endif %}</td>
+<td>{{ "${:,.0f}".format(e.direct) if e.direct else "–" }}</td>
+<td>${{ "{:,.0f}".format(e.total - e.direct) }}</td>
+<td><b>${{ "{:,.0f}".format(e.total) }}</b></td><td>{{ "%.1f" | format(e.share * 100) }}%</td></tr>
+{% endfor %}
+</table>
+{% if missing %}<p class="m">Not included: {{ missing | join(", ") }} ({{ "%.1f" | format(missing_share * 100) }}% of the portfolio), whose holdings aren't public.</p>{% endif %}
+
+<h2>Funds</h2>
+<table>
+<tr><th>Fund</th><th>Weight</th><th>Theme</th><th>Holdings</th></tr>
+{% for f in funds %}
+<tr><td><a href="/fund/{{ f.symbol }}">{{ f.symbol }}</a> <span class="muted">{{ f.name }}</span></td>
+<td>{{ "%.1f" | format(f.weight * 100) }}%</td><td>{{ f.theme }}</td>
+<td>{% if f.period %}as of {{ f.period }}{% if f.proxy %} <span class="muted">(via {{ f.proxy }})</span>{% endif %}{% else %}<span class="muted">not public</span>{% endif %}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

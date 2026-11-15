@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "_money.html" import money_s, usd, tone, vsbar %}
+{% from "_tools.html" import toolbar %}
+{% block body %}
+{% set seg = "Buys vs S&P" %}{% include "_seg.html" %}
+{% if lots is none %}
+<p class="muted">Needs Fidelity activity exports in <b>fin-news/fidelity/</b> and the morning price run.</p>
+{% else %}
+<div class="m">Money I invested…</div>
+<div class="chips wrap">{% for k, (label, _, _) in windows.items() %}<a href="/money?w={{ k }}" class="{{ 'on' if k == w else '' }}">{{ label }}</a>{% endfor %}</div>
+<form class="dates" action="/money" method="get">
+  <input type="date" name="first" value="{{ first }}" min="{{ floor }}" max="{{ end }}" aria-label="From">
+  <span class="muted">to</span>
+  <input type="date" name="last" value="{{ last }}" min="{{ floor }}" max="{{ end }}" aria-label="To">
+  <button>Go</button>
+</form>
+
+<div class="card">
+  <div class="m">Bought {{ first.strftime("%b %-d, %Y") }} – {{ last.strftime("%b %-d, %Y") }} · valued at the {{ end.strftime("%b %-d") }} close</div>
+  {% if not x.n %}<p class="muted">No investments in these dates.</p>{% else %}
+  <div class="duo">
+    <div><span>You put in</span><b class="big">{{ usd(x.cost) }}</b><span class="m">{{ x.n }} buys</span></div>
+    <div><span>Worth today</span><b class="big">{{ usd(x.value) }}</b><span class="m"><b class="{{ tone(x.gain) }}">{{ money_s(x.gain) }} ({{ pct(x.pct) }})</b></span></div>
+  </div>
+  {% set diff = x.gain - x.bench_gain %}
+  <div class="m" style="margin-top:8px">Same money in the S&amp;P 500 on the same days: {{ money_s(x.bench_gain) }} ({{ pct(x.bench_pct) }})</div>
+  <div class="verdict {{ tone(diff) }}">{{ "✅" if diff >= 0 else "⚠️" }} {{ money_s(diff) }} {{ "ahead of" if diff >= 0 else "behind" }} the index · {{ x.beat }} of {{ x.n }} buys beat it</div>
+  {% if x.fresh.n and x.settled.n %}<div class="m">Without the last {{ fresh_days }} days' {{ usd(x.fresh.cost) }} (too new to judge):
+    {{ usd(x.settled.cost) }} → <b class="{{ tone(x.settled.gain) }}">{{ pct(x.settled.pct) }}</b> vs S&amp;P {{ pct(x.settled.bench_pct) }}.</div>{% endif %}
+  {% endif %}
+</div>
+
+{% if months | length > 1 %}
+<h2>By month bought</h2>
+<ul class="mbars">
+{% for m in months %}
+<li><span class="lab">{{ m.month.strftime("%b %y") }}</span>
+  <span class="track"><i style="width:{{ 100 * m.cost / month_max }}%"></i></span>
+  <span class="num">{{ usd(m.cost) }}</span>
+  <span class="num {{ tone(m.pct) }}">{{ pct(m.pct) if m.pct is not none else "–" }}</span>
+  <span class="num muted">S&amp;P {{ pct(m.bench_pct) if m.bench_pct is not none else "–" }}</span></li>
+{% endfor %}
+</ul>
+<p class="m">Bar: amount invested that month.</p>
+{% endif %}
+
+{% if groups %}
+<h2>By stock</h2>
+<p class="muted">Bar right: ahead of the S&amp;P. Faded: under {{ fresh_days }} days old. Tap for each buy.</p>
+{{ toolbar("stock-rows", [("best", "Best vs S&P", "Default", "asc"), ("worst", "Worst vs S&P", "Vs", "asc"),
+   ("cost", "Most invested", "Cost", "desc"), ("gain", "Gain $", "Gain", "desc")]) }}
+<ul class="rows" id="stock-rows">
+{% for g in groups %}{% set st = g.settled %}
+<li class="{{ 'fresh' if not st.n else '' }}" data-s-vs="{{ st.vs if st.n and st.vs is not none else '' }}"
+    data-s-cost="{{ g.cost }}" data-s-gain="{{ g.gain }}"><details><summary>
+  <span><span class="sym">{{ g.symbol }}</span> <span class="muted">{{ names.get(g.symbol, "") }}</span></span>
+  <span class="num {{ tone(st.pct if st.n else g.pct) }}">{{ pct(st.pct if st.n else g.pct) if (st.pct if st.n else g.pct) is not none else "–" }}</span>
+  {{ vsbar(st.vs if st.n else g.vs, scale) }}
+  <span class="sub">{{ usd(g.cost) }} → {{ usd(g.value) }} ({{ money_s(g.gain) }}) · {{ g.n }} buy{{ "s" if g.n > 1 }}{% if st.n and st.vs is not none %} · {{ "%+.1f" | format(100 * st.vs) }} pts vs S&amp;P{% endif %}{% if st.n and g.fresh.n %} · {{ usd(g.fresh.cost) }} too new{% elif not st.n %} · too new to judge{% endif %}</span>
+</summary>
+<table class="buys"><tr><th>Bought</th><th class="num">Cost → now</th><th class="num">Gain</th><th class="num">S&amp;P</th></tr>
+{% for b in g.buys %}<tr class="{{ 'fresh' if b.days < fresh_days else '' }}"><td>{{ b.date.strftime("%b %-d '%y") }}{% if b.kind != "buy" %} <span class="muted">{{ b.kind }}</span>{% endif %}</td>
+<td class="num">{{ usd(b.cost) }} → {{ usd(b.value) }}</td>
+<td class="num {{ tone(b.gain) }}">{{ money_s(b.gain) }}{% if b.pct is not none %} ({{ pct(b.pct) }}){% endif %}</td>
+<td class="num muted">{{ pct(b.bench_pct) if b.bench_pct is not none else "–" }}</td></tr>{% endfor %}</table>
+<a href="/{{ 'fund' if g.symbol in funds else 'holding' }}/{{ g.symbol }}" class="m">Open {{ g.symbol }}</a>
+</details></li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<p class="m" style="margin-top:16px">Buys, ESPP and vests in your brokerage accounts since {{ floor.strftime("%b %-d, %Y") }}; sold shares count at their sale price.
+{% if approximate %}Approximate prices (not on Yahoo): {{ approximate | join(", ") }}.{% endif %}</p>
+{% endif %}
+{% endblock %}

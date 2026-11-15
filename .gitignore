@@ -1,0 +1,33 @@
+# Private: secrets, people, their exports, and everything the app writes
+.env
+config.toml
+users/
+fidelity/
+data/
+digests/
+logs/
+reports/
+# Benchmark inputs and outputs hold article text and the owner's questions; tech.json (numbers only) and prompts are kept
+bench/data/
+bench/grading/
+bench/labels/
+bench/runs/
+# A private add-on: the public code runs without it (fin_news/addons.py)
+fin_news/advisor.py
+fin_news/advisor_web.py
+fin_news/ADVISOR.md
+fin_news/extension/
+fin_news/templates/advisor.html
+fin_news/templates/_advisor_*.html
+# Python and tools
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+*.part
+*.tmp
+*.txt
+!requirements.txt
+!bench/prompts/*/*.txt
+# Ask prompts as benchmarked: they describe the private add-on
+bench/prompts/ask/

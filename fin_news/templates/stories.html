@@ -1,0 +1,8 @@
+{% macro story(s) %}
+<div class="card">
+  <div class="t">{% if s.sentiment %}<span class="{{ s.sentiment }}">●</span> {% endif %}<a href="{{ s.url }}">{{ s.title }}</a></div>
+  <div class="m">{{ s.source }} · {{ s.ago }}{% if s.n_sources > 1 %} · {{ s.n_sources }} sources{% endif %}{% if s.tickers %} · {{ s.tickers | join(", ") }}{% endif %}</div>
+  {% if s.summary %}<div class="s">{{ s.summary }}</div>{% endif %}
+  {% if s.why %}<div class="s muted">Why it matters: {{ s.why }}</div>{% endif %}
+</div>
+{% endmacro %}

@@ -1,0 +1,20 @@
+{# The toolbar above a list: a Sort dropdown (the browser reorders the rows of #target by their data-s-<key>
+   attributes, so it works offline too, and remembers the choice per page) and, given the prices state, the button
+   that refreshes every stock's price (data-auto: the page starts it on load, when the prices are stale). options: (value, label, key, "asc"|"desc"); key "Default" is the server order. #}
+{% macro toolbar(target, options, prices=none, next="", auto=false) %}
+<div class="tools">
+  <label class="sortby"><span>Sort</span>
+    <select class="sort" data-target="{{ target }}">
+      {% for value, label, key, dir in options %}<option value="{{ value }}" data-key="{{ key }}" data-dir="{{ dir }}">{{ label }}</option>{% endfor %}
+    </select></label>
+  {% if prices %}
+  <form method="post" action="/prices/refresh" class="refresh-all" data-running="{{ 1 if prices.running else 0 }}"{% if auto %} data-auto="1"{% endif %}>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button{% if prices.running or prices.cooling %} disabled{% endif %}>
+      {%- if prices.running %}{{ prices.done }} of {{ prices.total }}…
+      {%- elif prices.cooling %}Updated {{ "just now" if not prices.ago_min else prices.ago_min ~ " min ago" }}
+      {%- else %}↻ Refresh{% endif %}</button>
+  </form>
+  {% endif %}
+</div>
+{% endmacro %}

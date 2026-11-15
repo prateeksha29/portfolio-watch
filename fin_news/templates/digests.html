@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Past digests</h1>
+<p class="muted">Kept for {{ days }} days. A new one is written at 6am, 2pm and 6pm.</p>
+<ul>{% for name, label in files %}<li><a href="/digests/{{ name }}">{{ label }}</a></li>{% else %}<li class="muted">None yet.</li>{% endfor %}</ul>
+{% endblock %}

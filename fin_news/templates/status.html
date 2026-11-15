@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Status</h1>
+<div class="card">Next run: <b>{{ next_run }}</b> (6am, 2pm, 6pm) · Articles stored: {{ articles }} (kept {{ keep }} days)
+<br>Portfolio file: <b>{{ holdings_file or "none" }}</b> (<a href="/files">your files</a>)</div>
+{% if holdings_warning %}<p class="negative">⚠️ {{ holdings_warning }}</p>{% endif %}
+{% include "_advisor_status.html" ignore missing %}
+<p class="m" id="offline-info"></p>
+<script>
+(async () => {  // what this phone has saved for offline use
+  if (!("caches" in window)) return;
+  const pages = await (await caches.open("pages")).keys();
+  const last = await caches.match("/__last-sync");
+  const el = document.getElementById("offline-info");
+  el.textContent = `Saved on this device for offline use: ${pages.length} pages` +
+    (last ? `, last saved ${new Date(Number(await last.text())).toLocaleString()}.` : ".");
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    el.insertAdjacentHTML("beforeend", ' <a href="" id="save-now">Save again now</a>');
+    document.getElementById("save-now").onclick = e => {
+      e.preventDefault(); navigator.serviceWorker.controller.postMessage("sync-now"); e.target.textContent = "Saving…";
+    };
+  }
+})();
+</script>
+<h2>Recent runs</h2>
+<table><tr><th>Started</th><th>Minutes</th><th>New</th><th>Summarized</th><th>Full text</th><th>Source errors</th></tr>
+{% for r in runs %}<tr><td>{{ r.started }}</td><td>{{ r.minutes }}</td><td>{{ r.new }}</td><td>{{ r.summarized }}</td><td>{{ r.full_text }}</td><td>{{ r.errors }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">No runs yet.</td></tr>{% endfor %}</table>
+{% if health %}<h2>Sources in the last run</h2>
+<table><tr><th>Source</th><th>Requests</th><th>Errors</th><th>Unchanged</th><th>Items</th><th>Last error</th></tr>
+{% for name, h in health %}<tr class="{{ 'negative' if h.requests and h.errors * 2 >= h.requests else '' }}"><td>{{ name }}</td><td>{{ h.requests }}</td><td>{{ h.errors }}</td>
+<td>{{ h.not_modified }}</td><td>{{ h['items'] }}</td><td class="m">{{ h.last_error[:90] }}</td></tr>{% endfor %}</table>{% endif %}
+{% endblock %}

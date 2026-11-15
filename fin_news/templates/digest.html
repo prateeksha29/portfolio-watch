@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block body %}
+{% if not html %}<p class="muted">No digest yet. The first one appears after the next scheduled run.</p>{% endif %}
+<div class="md">{{ html | safe }}</div>
+{% endblock %}

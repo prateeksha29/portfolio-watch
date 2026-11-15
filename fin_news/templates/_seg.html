@@ -1,0 +1,3 @@
+<h1>Holdings</h1>
+<div class="seg seg4">{% for href, label in [("/holdings", "Research"), ("/positions", "Positions"), ("/returns", "Performance"), ("/money", "Buys vs S&P")] %}<a href="{{ href }}" class="{{ 'on' if label == seg else '' }}">{{ label }}</a>{% endfor %}</div>
+{% if behind and seg != "Research" %}<p class="negative">⚠️ Positions are from {{ positions_date.strftime("%b %-d") }} but activity only goes to {{ behind.strftime("%b %-d") }}: later buys are missing. Download Fidelity activity (past 30 days) into fidelity/.</p>{% endif %}

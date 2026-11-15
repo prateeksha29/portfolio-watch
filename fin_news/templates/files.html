@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Your files</h1>
+<div class="card">Positions in use: <b>{{ holdings_file or "none yet" }}</b>
+{% if holdings_warning %}<p class="negative">⚠️ {{ holdings_warning }}</p>{% endif %}</div>
+{% for m in messages %}<p class="{{ 'negative' if not ('saved as' in m or 'already uploaded' in m) else '' }}">{{ m }}</p>{% endfor %}
+<form method="post" action="/files" enctype="multipart/form-data" class="card">
+<p style="margin-top:0">Upload Fidelity exports (CSV). Only you see them.</p>
+<ul class="m">
+<li><b>Positions</b>: Fidelity → Accounts &amp; Trade → Portfolio → Positions → Download. Your holdings and their
+values; the newest one is used.</li>
+<li><b>Activity</b>: Accounts &amp; Trade → Activity &amp; Orders → Download (90 days at a time; overlapping files are
+fine). Needed for Performance and Buys vs S&amp;P.</li>
+</ul>
+<input type="file" name="files" accept=".csv,text/csv" multiple required>
+<p><button>Upload</button></p>
+</form>
+<h2>Uploaded</h2>
+<table><tr><th>File</th><th>Size</th><th>Added</th></tr>
+{% for f in files %}<tr><td>{{ f.name }}</td><td>{{ f.kb }} KB</td><td>{{ f.when }}</td></tr>
+{% else %}<tr><td colspan="3" class="muted">Nothing yet.</td></tr>{% endfor %}</table>
+<p class="m">New positions show up at once; the news digest follows your stocks from the next run (6am, 2pm, 6pm).</p>
+{% endblock %}

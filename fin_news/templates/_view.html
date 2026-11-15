@@ -1,0 +1,48 @@
+{# Plain / Technical switch for the How it works and Benchmarks pages. Technical blocks carry class t-only. #}
+<style>
+.viewsw { display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin:6px 0 4px; }
+.viewsw .grp { display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+.viewsw button { font-size:13px; padding:6px 14px; border-radius:0; background:var(--card); color:var(--text); }
+.viewsw button[aria-pressed="true"] { background:var(--c-on); color:#fff; font-weight:600; }
+.viewsw .hint { font-size:12px; color:var(--muted); }
+.t-only, .t-inline { display:none; }
+html[data-view="tech"] .t-only { display:block; }
+html[data-view="tech"] .t-inline { display:inline-block; }
+html[data-view="tech"] .p-only { display:none; }
+.tech { border-left:3px solid var(--c-on); padding:2px 0 2px 10px; margin:12px 0; }
+.tech > .lbl { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--c-on); }
+.tscroll { overflow-x:auto; margin:6px 0; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+.tscroll table { font-size:13px; }
+.tscroll td, .tscroll th { white-space:nowrap; }
+.ci { color:var(--muted); font-size:12px; white-space:nowrap; }
+.tscroll td .ci { display:block; }
+.tscroll td:first-child, .tscroll th:first-child { position:sticky; left:0; background:var(--bg); z-index:1; white-space:normal; min-width:110px; max-width:170px; }
+@media (max-width:600px) {
+  table.stack, table.stack tbody { display:block; }
+  table.stack tr:first-child { display:none; }
+  table.stack tr { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; padding:8px 0; border-bottom:1px solid var(--line); }
+  table.stack td { display:block; border:0; padding:0; text-align:left !important; white-space:normal; position:static; background:none; }
+  table.stack td:first-child { grid-column:1 / -1; font-weight:600; }
+  table.stack td[data-l]::before { content:attr(data-l); display:block; font-size:11px; font-weight:400; color:var(--muted); }
+  table.stack td .ci { display:inline; }
+}
+.vd { font-size:12px; font-weight:600; white-space:nowrap; }
+code.k { font-size:12px; }
+</style>
+<div class="viewsw"><span class="grp" role="group" aria-label="Detail level">
+<button type="button" data-v="plain" aria-pressed="true">Plain</button><button type="button" data-v="tech" aria-pressed="false">Technical</button></span>
+<span class="hint">{{ view_hint }}</span></div>
+<script>
+(() => {
+  const root = document.documentElement, btns = [...document.querySelectorAll(".viewsw button")];
+  const set = v => { root.dataset.view = v; btns.forEach(b => b.setAttribute("aria-pressed", b.dataset.v === v)); };
+  let v = new URLSearchParams(location.search).get("view");
+  if (!v) { try { v = localStorage.getItem("view"); } catch (e) {} }
+  set(v === "tech" ? "tech" : "plain");
+  btns.forEach(b => b.addEventListener("click", () => {
+    set(b.dataset.v);
+    try { localStorage.setItem("view", b.dataset.v); } catch (e) {}
+    document.dispatchEvent(new Event("viewchange"));
+  }));
+})();
+</script>

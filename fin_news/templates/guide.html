@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% block body %}
+{% set adv = advisor if advisor is defined else none %}
+<style>
+.doc { --c-on:#2a78d6; --c-off:#a3adbb; --soft:rgba(42,120,214,.08); }
+@media (prefers-color-scheme: dark) { .doc { --c-on:#3987e5; --c-off:#4b5563; --soft:rgba(57,135,229,.12); } }
+.doc .lead { font-size:17px; color:var(--text); margin:4px 0 12px; }
+.doc .toc { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px; }
+.doc .toc a { padding:5px 10px; border:1px solid var(--line); border-radius:999px; font-size:13px; text-decoration:none;
+  color:var(--text); background:var(--card); }
+.doc section { scroll-margin-top:60px; }
+/* funnel */
+.funnel { list-style:none; padding:0; margin:8px 0 0; }
+.funnel li { display:grid; grid-template-columns:1fr auto; gap:2px 10px; margin:0 0 10px; }
+.funnel .lab { font-size:14px; } .funnel .val { font-variant-numeric:tabular-nums; font-weight:600; text-align:right; }
+.funnel .trk { grid-column:1 / -1; height:12px; background:var(--line); border-radius:6px; overflow:hidden; }
+.funnel .trk i { display:block; height:100%; min-width:3px; background:var(--c-on); border-radius:0 4px 4px 0; }
+.funnel .why { grid-column:1 / -1; font-size:13px; color:var(--muted); }
+/* day timeline */
+.day { width:100%; height:auto; display:block; margin:6px 0 0; }
+.day text { font-size:11px; fill:var(--muted); } .day .hr { stroke:var(--line); }
+.day .mkt { fill:var(--c-on); opacity:.18; } .day .pre { fill:var(--c-off); opacity:.35; }
+.day .run line { stroke:var(--c-on); stroke-width:2; } .day .run circle { fill:var(--c-on); stroke:var(--card); stroke-width:2; }
+.day .run text { fill:var(--text); font-weight:600; font-size:12px; }
+.slots { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:8px; }
+.slots div { padding:8px; border:1px solid var(--line); border-radius:10px; font-size:13px; background:var(--card); }
+.slots b { display:block; font-size:15px; }
+/* pipeline stepper */
+.steps { list-style:none; padding:0; margin:8px 0; position:relative; }
+.steps::before { content:""; position:absolute; left:15px; top:8px; bottom:8px; width:2px; background:var(--line); }
+.steps > li { position:relative; margin:0 0 8px; padding-left:44px; }
+.steps .n { position:absolute; left:0; top:8px; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
+  background:var(--card); border:2px solid var(--c-on); color:var(--c-on); font-weight:700; font-size:14px; }
+.steps details { background:var(--card); border:1px solid var(--line); border-radius:12px; }
+.steps summary { list-style:none; cursor:pointer; padding:10px 12px; display:flex; flex-direction:column; gap:1px; }
+.steps summary::-webkit-details-marker { display:none; }
+.steps summary b { font-size:16px; } .steps summary span { font-size:13px; color:var(--muted); }
+.steps summary::after { content:"Details ▾"; font-size:12px; color:var(--accent); margin-top:2px; }
+.steps details[open] summary::after { content:"Hide ▴"; }
+.steps details[open] { border-color:var(--c-on); }
+.steps .body { padding:0 12px 10px; font-size:15px; } .steps .body p { margin:6px 0; }
+.where { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.where a, .where span { font-size:12px; padding:3px 8px; border-radius:999px; background:var(--soft); color:var(--text); text-decoration:none; }
+.tag { display:inline-block; font-size:11px; padding:1px 6px; border-radius:6px; border:1px solid var(--line); color:var(--muted); margin-left:4px; vertical-align:2px; }
+/* article journey */
+.journey { display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px 2px 10px; margin:0 -2px; }
+.journey .stop { flex:0 0 82%; max-width:340px; scroll-snap-align:start; background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:10px 12px; font-size:14px; }
+.journey .stop .k { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.journey .stop b { display:block; margin:2px 0 4px; font-size:15px; }
+.journey .quote { border-left:3px solid var(--c-on); padding-left:8px; color:var(--text); }
+.hint { font-size:12px; color:var(--muted); }
+/* tab explorer */
+.phone { max-width:380px; margin:0 auto; border:3px solid var(--muted); border-radius:22px; background:var(--card); overflow:hidden; }
+.phone .scr { padding:12px; min-height:180px; }
+.phone .scr h3 { margin:0 0 4px; } .phone .scr p { margin:6px 0; font-size:15px; }
+.phone .views { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+.phone .views span { font-size:13px; padding:4px 10px; border-radius:8px; background:var(--line); }
+.phone .pbar { display:flex; border-top:1px solid var(--line); }
+.phone .pbar button { flex:1; background:none; color:var(--muted); font-size:12px; padding:8px 0 6px; border-radius:0;
+  display:flex; flex-direction:column; align-items:center; gap:2px; }
+.phone .pbar button[aria-selected="true"] { color:var(--c-on); font-weight:600; background:var(--soft); box-shadow:inset 0 2px 0 var(--c-on); }
+.phone .pbar .ico { width:20px; height:20px; }
+dl.kvs { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:6px 0; font-size:14px; }
+dl.kvs dt { color:var(--muted); } dl.kvs dd { margin:0; }
+/* technical: pipeline internals */
+.flow { list-style:none; padding:0; margin:8px 0; }
+.flow > li { margin:0; padding:8px 10px; background:var(--card); border:1px solid var(--line); border-radius:10px; position:relative; }
+.flow > li + li { margin-top:14px; }
+.flow > li + li::before { content:"↓"; position:absolute; top:-15px; left:16px; font-size:12px; color:var(--muted); line-height:14px; }
+.flow .hd { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+.flow .hd b { font-size:15px; } .flow .hd .sec { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.flow .tb { height:6px; background:var(--line); border-radius:3px; margin:4px 0 2px; overflow:hidden; }
+.flow .tb i { display:block; height:100%; background:var(--c-on); border-radius:0 3px 3px 0; min-width:2px; }
+.flow p { margin:4px 0 0; font-size:13px; } .flow code { font-size:12px; }
+.kv1 td:first-child { white-space:nowrap; }
+.flow .ai { font-size:11px; padding:1px 6px; border-radius:6px; background:var(--soft); color:var(--c-on); margin-left:6px; }
+table.plain td, table.plain th { white-space:normal; vertical-align:top; }
+.note { font-size:13px; color:var(--muted); }
+</style>
+<div class="doc">
+<h1>How Fin News works</h1>
+<p class="lead">Three times a day the server reads the news about your {{ n_stocks }} stocks and {{ n_funds }} funds,
+keeps what matters to you, writes short summaries, and builds the Digest. Everything runs on the local server and
+its shared GPU: no cloud AI sees your portfolio.</p>
+{% set view_hint = "Technical adds the pipeline internals: models, thresholds, per-step timings, storage and failure handling." %}
+{% include "_view.html" %}
+<nav class="toc"><a href="#run">One run</a><a href="#when">When</a><a href="#steps">The 10 steps</a><a href="#journey">One article's journey</a><a href="#tabs">The tabs</a><a href="#fresh">How fresh</a><a href="#models">Models</a><a class="t-inline" href="#internals">Under the hood</a></nav>
+
+<section id="run">
+<h2>One run, in numbers</h2>
+{% if last %}
+<p class="m muted">The last run, {{ last.when }}, took {{ (last.seconds / 60)|round(1) }} minutes.</p>
+{% set top = last.collected or 1 %}
+<ol class="funnel">
+{% for label, value, why in [
+  ("Items read from " ~ last.sources ~ " sources", last.collected, "RSS feeds, Google News searches, Finnhub, SEC EDGAR, Reddit, the Motley Fool and more, for every holding and theme."),
+  ("New articles", last.new_articles, "Everything older than 3 days, already stored, or junk (quote pages, author pages) is dropped."),
+  ("Stories touched", last.stories_touched, "Copies of the same news from different sites are grouped into one story."),
+  ("Summarized by the AI", last.summarized, "The stories the Digest shows first, in the order it shows them; the rest keep their headline.")] %}
+<li><span class="lab">{{ label }}</span><span class="val">{{ "{:,}".format(value or 0) }}</span>
+<span class="trk" data-tip="{{ label }}: {{ '{:,}'.format(value or 0) }}"><i style="width:{{ [100 * (value or 0) / top, 0.4]|max }}%"></i></span>
+<span class="why">{{ why }}</span></li>
+{% endfor %}
+</ol>
+{% else %}<p class="muted">No finished run yet.</p>{% endif %}
+<p class="note">Stored now: {{ "{:,}".format(articles) }} articles in {{ "{:,}".format(stories) }} stories ({{ "{:,}".format(summarized) }} summarized), each kept {{ keep }} days.</p>
+</section>
+
+<section id="when">
+<h2>When it runs</h2>
+<p>Every day at <b>6 am, 2 pm and 6 pm</b> Pacific. Next: <b>{{ next_run }}</b>. The times follow the US market,
+which is open 6:30 am – 1 pm Pacific.</p>
+<svg class="day" viewBox="0 0 360 92" role="img" aria-label="A day from midnight to midnight: pre-market 1 to 6:30 am, market 6:30 am to 1 pm, runs at 6 am, 2 pm and 6 pm">
+  <rect class="pre" x="15" y="34" width="82.5" height="20" rx="3"/>
+  <rect class="mkt" x="97.5" y="34" width="97.5" height="20" rx="3"/>
+  <line class="hr" x1="0" y1="54" x2="360" y2="54"/>
+  {% for h in [0, 6, 12, 18, 24] %}<line class="hr" x1="{{ h * 15 }}" y1="54" x2="{{ h * 15 }}" y2="58"/>
+  <text x="{{ [[h * 15, 8]|max, 352]|min }}" y="70" text-anchor="middle">{{ {0: "12 am", 6: "6 am", 12: "noon", 18: "6 pm", 24: "12 am"}[h] }}</text>{% endfor %}
+  <text x="56" y="48" text-anchor="middle">pre-market</text><text x="146" y="48" text-anchor="middle">market open</text>
+  {% for h, l in [(6, "6 am"), (14, "2 pm"), (18, "6 pm")] %}<g class="run"><line x1="{{ h * 15 }}" y1="20" x2="{{ h * 15 }}" y2="54"/>
+  <circle cx="{{ h * 15 }}" cy="18" r="5"/><text x="{{ h * 15 }}" y="10" text-anchor="middle">{{ l }}</text></g>{% endfor %}
+  <text x="0" y="88">Pacific time</text>
+</svg>
+<div class="slots">
+<div><b>6 am</b>Overnight news and pre-market earnings, ready before the 6:30 open. Also fetches prices, analyst moves, {% if adv %}{{ adv.label }} picks {% endif %}and new ideas.</div>
+<div><b>2 pm</b>An hour after the close: the day's moves and after-hours earnings. Fetches prices again, so you see today's close.</div>
+<div><b>6 pm</b>Earnings-call coverage, analyst write-ups and the evening wrap-ups.</div>
+</div>
+</section>
+
+<section id="steps">
+<h2>The 10 steps of a run</h2>
+<p class="m muted">Tap a step for details.</p>
+<ol class="steps">
+<li><span class="n">1</span><details><summary><b>Collect</b><span>Read ~200 news sources for your holdings and themes</span></summary><div class="body">
+<p>RSS feeds of news sites, Google News searches per holding, Finnhub company news, SEC EDGAR filings (8-K, 6-K, Form 4),
+FRED macro data, Reddit, Motley Fool news{% if adv %} and {{ adv.short }} write-ups{% endif %}. Sites are asked politely: robots.txt is respected
+for pages the app crawls, and each site gets a few seconds between requests.</p>
+<div class="where"><a href="/status">Status → Sources in the last run</a></div></div></details></li>
+<li><span class="n">2</span><details><summary><b>Filter and tag</b><span>Drop old, seen and junk items; find which of your stocks each one names</span></summary><div class="body">
+<p>Items older than 3 days or already stored are dropped. Company names, aliases and cashtags are matched to tickers:
+"Micron" or "$MU" → <b>MU</b>. Short tickers that are also words (MU, META) count only as $MU, (MU) or NASDAQ:MU.</p></div></details></li>
+<li><span class="n">3</span><details><summary><b>Understand</b><span class="ai">Turn each article into a "meaning vector"</span></summary><div class="body">
+<p>An embedding model reads each headline and summary and turns it into a list of {{ emb.dim }} numbers that captures what it's about.
+Articles about the same thing get similar vectors, even with different words. Model: <b>{{ emb.served_model }}</b><span class="tag">AI</span></p>
+<div class="where"><a href="/benchmarks#embed">Why this model</a></div></div></details></li>
+<li><span class="n">4</span><details><summary><b>Sort by type</b><span>News, analysis/opinion, press release or call transcript</span></summary><div class="body">
+<p>Clear cases go by title rules ("earnings call transcript", "announces", a headline ending in "?") and by source (a press-release wire like GlobeNewswire). The rest are compared
+with a few example headlines of each type. The Digest uses this to keep opinion pieces in their own section.</p></div></details></li>
+<li><span class="n">5</span><details><summary><b>Score relevance</b><span>Is it about one of your holdings or themes?</span></summary><div class="body">
+<p>Each article is compared with "news about Microsoft (MSFT)" for every holding, and with each theme (Fed decision, CPI,
+AI data center spending…). A holding counts when the headline names it, or when the summary names it <i>and</i> it's the article's
+best match. Themes need a clearly stronger match than the other themes.</p></div></details></li>
+<li><span class="n">6</span><details><summary><b>Group into stories</b><span>Copies of the same news become one story</span></summary><div class="body">
+<p>Headlines published within 36 hours that mean the same thing are grouped ("Meta plans $20B bond sale" and "Meta seeks
+up to $25 billion in debt sale"). The best source becomes the story's main link; the count of sources shows how widely it was covered.
+Comparison headlines ("X vs. Y"), headlines naming different holdings, and analyst moves by different firms ("Baird raises Apple target" vs "UBS raises Apple target") are never merged, and two headlines about the same company must also say something similar once the company's name is taken out ("CEO maps out acquisition push" is not "an incredible growth stock"). If a different article becomes a story's main one, the story is summarized again.</p></div></details></li>
+<li><span class="n">7</span><details><summary><b>Fetch full text</b><span>Read the whole article for the stories that will be summarized</span></summary><div class="body">
+<p>Only where the site allows it and isn't paywalled; otherwise the summary uses the snippet. About half succeed.</p></div></details></li>
+<li><span class="n">8</span><details><summary><b>Summarize</b><span class="ai">Up to {{ llm.max_stories }} stories in Digest order</span></summary><div class="body">
+<p>For each story the AI writes up to 3 sentences on what happened, the sentiment for your holding (positive, negative, mixed,
+neutral), up to 4 key numbers (each checked against the article text), why it matters, and whether the story is really about your
+holding or only mentions it. Model: <b>{{ llm.model }}</b><span class="tag">AI</span> (backup: {{ llm.fallback_model }}).</p>
+<div class="where"><a href="/benchmarks#summaries">How it was chosen</a></div></div></details></li>
+<li><span class="n">9</span><details><summary><b>Extras</b><span>Filings, prices, funds, {% if adv %}{{ adv.label }}, {% endif %}ideas</span></summary><div class="body">
+<p><b>SEC filings</b>: press releases in 8-K/6-K are summarized; Form 4 insider trades are parsed.
+<b>Market data</b> (6 am and 2 pm): price, valuation, analyst ratings and targets from Yahoo Finance.
+<b>Fund holdings</b>: each fund's latest SEC report, so you see your real exposure through funds.
+{% if adv %}<b>{{ adv.label }}</b> (6 am): {{ adv.short }} picks and ratings. {% endif %}<b>Ideas</b> (6 am): {% if adv %}new {{ adv.label }} picks and {% endif %}notable insider buying in stocks you don't own.</p>
+<div class="where"><a href="/holdings">Holdings</a><a href="/ideas">Ideas</a>{% if adv %}<a href="{{ adv.tab[0] }}">{{ adv.label }}</a>{% endif %}</div></div></details></li>
+<li><span class="n">10</span><details><summary><b>Write the Digest, tidy up</b><span>The Digest, then old data is deleted</span></summary><div class="body">
+<p>The Digest is ordered by what matters to you: a heads-up (earnings, big moves, anything that needs you), company announcements,
+insider trades, analyst moves, then your holdings largest first, themes and funds, macro, analysis & opinion, Reddit.
+Afterwards articles older than {{ keep }} days and digests older than 3 days are deleted.</p>
+<div class="where"><a href="/">Digest</a><a href="/digests">Past digests</a></div></div></details></li>
+</ol>
+</section>
+
+<section id="internals" class="t-only">
+<h2>Under the hood</h2>
+<p class="note">The same run as above, as implemented. Values come from <code>config.toml</code> as loaded now; bars show each step's share of the last run's time.
+{% if not last.step_seconds %}Per-step timings are recorded from the Nov 3, 6 pm run on; this run predates them.{% endif %}</p>
+{% set st = last.step_seconds or {} %}{% set tot = (st.values()|sum) or 1 %}
+{% macro step(key, title, ai=False) %}<li><div class="hd"><b>{{ title }}{% if ai %}<span class="ai">model</span>{% endif %}</b>{% if key in st %}<span class="sec">{{ "%.1f"|format(st[key]) }} s</span>{% endif %}</div>
+{% if key in st %}<div class="tb"><i style="width:{{ [100 * st[key] / tot, 0.5]|max }}%"></i></div>{% endif %}{{ caller() }}</li>{% endmacro %}
+<ol class="flow">
+{% call step("collect", "Collect") %}<p>~200 HTTP jobs across 19 sites: RSS/Atom, Google News per holding and theme, Finnhub, SEC EDGAR, FRED/BLS, Reddit, Motley Fool.
+Conditional GET (ETag / Last-Modified), ≤ {{ fetch.max_parallel_hosts }} hosts in parallel, {{ fetch.delay_seconds }} s between requests to one host, robots.txt for crawled pages.</p>{% endcall %}
+{% if adv %}{% call step("advisor", adv.name) %}<p>With the owner's login, sent by a laptop extension; picks and write-ups once a day.</p>{% endcall %}{% endif %}
+{% call step("prepare", "Filter, dedupe URLs, wait for the embedder") %}<p>Drop items older than {{ fetch.max_age_days }} days, junk pages (regex) and URLs already stored; resume articles a failed run left unprocessed.
+Then a probe request waits up to {{ emb.wait_seconds }} s for llama-swap to load the embedder; if it doesn't, the articles wait for the next run.</p>{% endcall %}
+{% call step("embed", "Embed", True) %}<p><code>{{ emb.served_model }}</code>, {{ emb.dim }}-d, last-token pooling, GGUF Q8_0 on llama.cpp. Document = <code>title\nsummary</code>
+(≤ {{ "{:,}".format(emb.max_chars) }} chars), batches of {{ emb.batch_size }}. Ticker tagging runs first: names, aliases and cashtags by regex; short tickers that are words need $MU / (MU) / NASDAQ:MU.</p>{% endcall %}
+{% call step("story_type", "Story type", True) %}<p>Rules first: title ("call transcript", "announces", a trailing "?", appointments, quarterly results, law-firm notices…) and wire-service source (<code>classify.rule_kind</code>). The rest: nearest class centroid of 21 prototype headlines, embedded with a classification instruction.
+Only items from mixed feeds; feeds with a known type keep it.</p>{% endcall %}
+{% call step("relevance", "Relevance", True) %}<p>Mean-centered cosine against <code>news about {name} ({ticker})</code> for each holding and against each of {{ n_topics }} themes (the corpus mean is stored and blended across runs).
+A holding counts if the headline names it, or if only the summary does and it's the best-matching holding with score ≥ {{ f.ticker_text_min }}. A theme needs score ≥ {{ f.topic_min }} and z ≥ {{ f.topic_min_z }} against the other themes; a regex drops excluded markets.</p>{% endcall %}
+{% call step("group", "Group into stories", True) %}<p>Headline vectors, mean-centered. A new article joins the nearest story within ±{{ f.dedup_window_hours }} h if cosine ≥ {{ f.dedup_threshold }} <i>and</i>,
+with holdings' names masked to "Company", cosine ≥ {{ f.dedup_mask_min }}. Never merged: "X vs. Y" headlines, headlines naming different holdings, and analyst actions naming different brokerages (<code>pipeline.analyst_firms</code>, ~60 firms). Main article: source priority, then type (filing → press release → news → … → analysis).</p>{% endcall %}
+{% call step("sec_filings", "SEC filing contents") %}<p>Press-release exhibits of 8-K / 6-K and Form 4 XML (insider trades), retried until read.</p>{% endcall %}
+{% call step("full_text", "Full text") %}<p>trafilatura on up to {{ fetch.max_full_text_per_run }} story main articles per run, in Digest order; robots.txt and a skip list of paywalled hosts; ~50–60% succeed.
+Articles with full text are re-embedded from the body.</p>{% endcall %}
+{% call step("summaries", "Summaries", True) %}<p><code>{{ llm.model }}</code> (fallback <code>{{ llm.fallback_model }}</code>), temperature 0, JSON schema, ≤ 600 tokens, thinking off, article ≤ {{ "{:,}".format(llm.max_article_chars) }} chars.
+Up to {{ llm.max_stories }} stories with ≥ {{ llm.min_text_chars }} chars of text, sequential (one request at a time; the server serializes them anyway). Key numbers are kept only if every digit group occurs in the source.
+A story is summarized again when its main article changes (<code>stories.summary_of</code>).</p>{% endcall %}
+{% call step("prices", "Prices, valuation, analyst targets") %}<p>Yahoo Finance, one page per holding, in the 6 am and 2 pm runs (slot recorded in <code>meta.market_refreshed</code>), and for new holdings.</p>{% endcall %}
+{% call step("price_history", "Price history for Returns") %}<p>Daily closes for securities in the Fidelity activity exports and the S&P 500.</p>{% endcall %}
+{% call step("fund_holdings", "Fund holdings") %}<p>SEC N-PORT, checked every 30 days per fund.</p>{% endcall %}
+{% call step("ideas", "Ideas") %}<p>Once a day: {% if adv %}{{ adv.label }} picks not held and {% endif %}notable insider buying, each with a Yahoo snapshot.</p>{% endcall %}
+</ol>
+<h3>Storage</h3>
+<table class="plain kv1">
+<tr><td><b>Database</b></td><td>SQLite in WAL mode (the web app reads while a run writes). Articles, stories, runs, quotes, prices, fund holdings, meta.</td></tr>
+<tr><td><b>Vectors</b></td><td><code>sqlite-vec</code> <code>vec0</code> table, {{ emb.dim }} × float32 per article, cosine distance, for Search and Ask; headline vectors as a BLOB column for grouping.
+The stored model name and dimension are checked on start; a different model needs a re-embed.</td></tr>
+<tr><td><b>Retention</b></td><td>Articles and stories {{ keep }} days, digests 3 days.</td></tr>
+</table>
+<h3>Ask, on demand</h3>
+<p class="note">Question → query embedding (with a retrieval instruction) → sqlite-vec KNN: up to 4 articles for each of the first two holdings the question names, then the 8 nearest overall, ≤ 1,500 chars each.
+Plus a structured context: positions and returns (signed, "above cost", "ahead of the S&P 500"), exposures numbered #1, #2…, fund overlap, market data with weekdays.
+→ <code>{{ llm.ask_model }}</code> with the tuned prompt; answers cite sources as [n].</p>
+<h3>Failure handling</h3>
+<ul class="note">
+<li>Embedder not served within {{ emb.wait_seconds }} s: the run skips embedding, keeps the articles and the next run resumes them; the Digest says so.</li>
+<li>Summary model not served: the fallback model is used.</li>
+<li>Per-source request, error and 304 counts are kept per run (Status page). A price refresh that mostly fails is retried next run.</li>
+<li>Only one run at a time (<code>flock</code>); the web app's own lock keeps a single server.</li>
+</ul>
+<p class="note"><a href="/benchmarks?view=tech">How each model and threshold was chosen, with intervals →</a></p>
+</section>
+
+<section id="journey">
+<h2>One article's journey</h2>
+<p class="m muted">A real example from late October. Swipe →</p>
+<div class="journey">
+<div class="stop"><span class="k">1 · Collected</span><b>"Acme Industries beats estimates but shares fall 4%"</b>Picked up from one of the news feeds the app reads for your holdings.</div>
+<div class="stop"><span class="k">2 · Tagged</span><b>ACME — Acme Industries</b>The headline names a holding, so it counts for ACME straight away.</div>
+<div class="stop"><span class="k">3 · Type</span><b>News</b>Not a question, not a press release: the nearest examples are news reports.</div>
+<div class="stop"><span class="k">4 · Grouped</span><b>One story</b>Other sites' versions of the same results join it as they arrive, so you see it once with a source count.</div>
+<div class="stop"><span class="k">5 · Full text</span><b>Article fetched</b>The site allows it, so the AI reads the whole article, not just the snippet.</div>
+<div class="stop"><span class="k">6 · Summarized</span><b>Sentiment: mixed</b><span class="quote">"Acme Industries reported third-quarter adjusted EPS of $7.58 and revenue of $1.56 billion, both significantly exceeding analyst estimates, while raising full-year 2026 guidance… Despite the strong financial performance and raised outlook, shares fell 4.9% in after-hours trading."</span></div>
+<div class="stop"><span class="k">7 · Shown</span><b>Digest → Your holdings → ACME</b>With its sentiment, key numbers and "why it matters"; also on the ACME stock page and in Ask's answers.</div>
+</div>
+</section>
+
+<section id="tabs">
+<h2>The tabs</h2>
+<p class="m muted">The app has five tabs along the bottom of the screen. The box below is a small copy of the app: tap Digest, Holdings, Ideas, Ask or More at the bottom of the box to see what each tab shows.</p>
+<div class="phone">
+<div class="scr" id="tabscreen">
+<div data-tab="digest"><h3>Digest</h3><p>The latest digest: what happened since the last run, ordered by what matters to you.</p>
+<div class="views"><span>Heads-up</span><span>Announcements</span><span>Insider trades</span><span>Analyst moves</span><span>Your holdings</span><span>Themes & funds</span><span>Macro</span><span>Analysis</span><span>Reddit</span></div>
+<p class="note">Updates three times a day. Tap a ticker for its stock page.</p></div>
+<div data-tab="holdings"><h3>Holdings</h3><p>Four views of your portfolio.</p>
+<div class="views"><span>Research</span><span>Positions</span><span>Performance</span><span>Buys vs S&P</span></div>
+<dl class="kvs"><dt>Research</dt><dd>News count, sentiment{% if adv %}, analyst target and {{ adv.label }} rating{% else %} and analyst target{% endif %} per stock</dd>
+<dt>Positions</dt><dd>Value, today's change and gain vs cost, like Fidelity's view</dd>
+<dt>Performance</dt><dd>What you earned over 1M–1Y vs the S&P 500</dd>
+<dt>Buys vs S&P</dt><dd>Each buy compared with the same dollars put into the S&P 500 that day</dd></dl>
+<p class="note">Positions and returns come from the Fidelity exports you put in the <code>fidelity</code> folder; prices update at 6 am, 2 pm and with ↻ Refresh.</p></div>
+<div data-tab="ideas"><h3>Ideas</h3><p>Stocks you don't own that might be worth a look.</p>
+<div class="views"><span>New</span><span>Watching</span>{% if adv %}<span>{{ adv.label }}</span>{% endif %}</div>
+<dl class="kvs"><dt>New</dt><dd>Fresh {% if adv %}{{ adv.label }} picks and {% endif %}notable insider buying, with price, analyst view and fund overlap</dd>
+<dt>Watching</dt><dd>Ideas you marked Watch: return since flagged vs the S&P 500</dd>
+{% if adv %}<dt>{{ adv.label }}</dt><dd>Recent {{ adv.short }} picks and each holding's {{ adv.label }} rating</dd>{% endif %}</dl></div>
+<div data-tab="ask"><h3>Ask</h3><p>Ask anything about your portfolio or the news in plain words. The AI answers from your positions,
+returns, fund holdings, market data and the stored articles, and cites the articles it used as [1], [2].</p>
+<p class="note">Takes 15–30 seconds. Model: {{ llm.ask_model }}. It says when the data doesn't answer part of a question.</p></div>
+<div data-tab="more"><h3>More</h3>
+<dl class="kvs"><dt>Search</dt><dd>Find stored articles by meaning, not only by words; a ticker alone opens its stock page</dd>
+<dt>Past digests</dt><dd>The last 3 days of digests</dd>
+<dt>Status</dt><dd>Next run, recent runs, each source's health{% if adv %}, the {{ adv.label }} login{% endif %}</dd>
+<dt>How it works</dt><dd>This page</dd><dt>Benchmarks</dt><dd>How the AI models and prompts were tested and chosen</dd></dl>
+<p class="note">Also: tap any ticker for its <b>stock page</b> (price chart, analysts, valuation, your position, news) and any fund for its <b>fund page</b> (largest holdings, which of your stocks it holds).</p></div>
+</div>
+<div class="pbar" role="tablist">
+<button role="tab" data-for="digest" aria-selected="true">{{ icons.digest }}Digest</button>
+<button role="tab" data-for="holdings">{{ icons.holdings }}Holdings</button>
+<button role="tab" data-for="ideas">{{ icons.ideas }}Ideas</button>
+<button role="tab" data-for="ask">{{ icons.ask }}Ask</button>
+<button role="tab" data-for="more"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>More</button>
+</div></div>
+</section>
+
+<section id="fresh">
+<h2>How fresh is each thing?</h2>
+<table class="plain">
+<tr><th>What</th><th>Updated</th></tr>
+<tr><td>News, stories, summaries, Digest</td><td>6 am, 2 pm, 6 pm</td></tr>
+<tr><td>Prices, valuation, analyst targets</td><td>6 am and 2 pm, or ↻ Refresh on Holdings</td></tr>
+<tr><td>{% if adv %}{{ adv.label }} picks, {% endif %}new ideas</td><td>Once a day, 6 am{% if adv %} (needs your {{ adv.label }} login from the laptop extension){% endif %}</td></tr>
+<tr><td>Fund holdings</td><td>Funds report quarterly, about 60 days after quarter end; checked every 30 days</td></tr>
+<tr><td>Your positions and returns</td><td>When you add a new Fidelity export to the <code>fidelity</code> folder</td></tr>
+<tr><td>Stored articles</td><td>Kept {{ keep }} days; digests 3 days</td></tr>
+</table>
+</section>
+
+<section id="models">
+<h2>The AI models</h2>
+<table class="plain">
+<tr><th>Job</th><th>Model</th></tr>
+<tr><td>Meaning vectors (relevance, grouping, Search)</td><td>{{ emb.served_model }}, {{ emb.dim }} numbers per article</td></tr>
+<tr><td>Story summaries, filing summaries</td><td>{{ llm.model }} (backup {{ llm.fallback_model }})</td></tr>
+<tr><td>Ask</td><td>{{ llm.ask_model }} (backup {{ llm.ask_fallback_model }})</td></tr>
+</table>
+<p class="note">All run on the shared GPU server through llama-swap, which loads a model when it's needed. If the GPU is
+busy, a run waits up to 15 minutes, then leaves its articles for the next run and says so in the Digest.
+<a href="/benchmarks">How these were chosen →</a></p>
+</section>
+</div>
+<div id="tip" role="tooltip" hidden style="position:fixed;z-index:20;padding:6px 8px;border-radius:8px;background:var(--text);color:var(--bg);font-size:13px;pointer-events:none"></div>
+<script>
+(() => {
+  const btns = [...document.querySelectorAll(".phone .pbar button")], panes = [...document.querySelectorAll("#tabscreen > div")];
+  const show = id => { panes.forEach(p => p.hidden = p.dataset.tab !== id); btns.forEach(b => b.setAttribute("aria-selected", b.dataset.for === id)); };
+  btns.forEach(b => b.addEventListener("click", () => show(b.dataset.for)));
+  show("digest");
+  const tip = document.getElementById("tip");
+  document.querySelectorAll("[data-tip]").forEach(el => {
+    const on = e => { tip.textContent = el.dataset.tip; tip.hidden = false; const r = el.getBoundingClientRect();
+      tip.style.left = Math.min(innerWidth - tip.offsetWidth - 8, Math.max(8, (e.clientX || r.left) - tip.offsetWidth / 2)) + "px";
+      tip.style.top = (r.top - tip.offsetHeight - 6) + "px"; };
+    el.addEventListener("pointerenter", on); el.addEventListener("pointermove", on);
+    el.addEventListener("pointerleave", () => tip.hidden = true);
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "stories.html" import story %}
+{% block body %}
+<h1>{{ ticker }} <span class="muted">{{ name }}</span></h1>
+{% if error %}<p class="negative">{{ error }}</p>{% endif %}
+{% if not owned %}<p class="muted">{% if through_funds %}You don't own it directly, but your funds hold about <b>${{ "{:,.0f}".format(through_funds.total) }}</b> of it ({% for s, v in through_funds.funds[:3] %}<a href="/fund/{{ s }}">{{ s }}</a>{{ ", " if not loop.last }}{% endfor %}){% else %}Not in your portfolio{% endif %} · <a href="/search?q={{ ticker | urlencode }}&articles=1">search articles for “{{ ticker }}” instead</a></p>{% endif %}
+
+{% if q and q.price %}
+<div class="card stock">
+  <div class="price-row">
+    <span class="price">${{ "{:,.2f}".format(q.price) }}</span>
+    {% if q.change_pct is not none %}<span class="{{ 'positive' if q.change_pct >= 0 else 'negative' }}">{{ pct(q.change_pct) }} today</span>{% endif %}
+    {% if q.returns and q.returns.oneMonthReturn is not none %}<span class="{{ 'positive' if q.returns.oneMonthReturn >= 0 else 'negative' }}">{{ pct(q.returns.oneMonthReturn) }} 1 mo</span>{% endif %}
+  </div>
+  <div class="m">Price as of {{ card.market_time }} · data fetched {{ card.fetched }}
+    <form method="post" action="/holding/{{ ticker }}/refresh" class="inline slow"><button class="link">Refresh</button></form>
+    <span class="wait">Fetching…</span></div>
+
+  {% if card.chart %}{{ card.chart }}
+  <div class="m legend"><span class="sw line"></span>daily close{% if q.target_mean %} · <span class="sw dash"></span>average analyst target · <span class="sw band"></span>target range{% endif %}</div>
+  {% else %}<p class="m">The 30-day chart fills in as daily prices are collected ({{ card.n_closes }} so far).</p>{% endif %}
+
+  {% if q.target_mean %}
+  <h3>Analysts</h3>
+  <div class="kv">
+    <div><span>Consensus</span><b>{{ (q.rating or "n/a").replace("_", " ") | capitalize }}</b></div>
+    <div><span>Average target</span><b>${{ "{:,.2f}".format(q.target_mean) }} <span class="{{ 'positive' if card.upside >= 0 else 'negative' }}">({{ pct(card.upside) }})</span></b></div>
+    <div><span>Median target</span><b>${{ "{:,.2f}".format(q.target_median) }}</b></div>
+    <div><span>Range</span><b>${{ "{:,.0f}".format(q.target_low) }} – ${{ "{:,.0f}".format(q.target_high) }}</b></div>
+  </div>
+  {% if card.now %}{% set n = card.now %}{% set total = n.strongBuy + n.buy + n.hold + n.sell + n.strongSell %}
+  {% if total %}
+  <div class="bar" aria-label="Analyst ratings">
+    {% for key, cls in [("strongBuy", "sb"), ("buy", "b"), ("hold", "h"), ("sell", "s"), ("strongSell", "ss")] %}{% if n[key] %}<span class="{{ cls }}" style="width:{{ 100 * n[key] / total }}%"></span>{% endif %}{% endfor %}
+  </div>
+  <div class="m">{{ n.strongBuy }} strong buy · {{ n.buy }} buy · {{ n.hold }} hold · {{ n.sell }} sell · {{ n.strongSell }} strong sell
+    {% if card.before %}{% set b = card.before %}<br>{{ {"-3m": "3", "-2m": "2"}[b.period] }} months ago: {{ b.strongBuy }} / {{ b.buy }} / {{ b.hold }} / {{ b.sell }} / {{ b.strongSell }}{% endif %}</div>
+  {% endif %}{% endif %}
+  {% if q.actions %}
+  <h3>Latest analyst actions</h3>
+  <ul class="actions">{% for a in q.actions[:5] %}<li>{% if a.action == "up" %}⬆️ {% elif a.action == "down" %}⬇️ {% endif %}{{ action_line(a) }} <span class="muted">· {{ a.date }}</span></li>{% endfor %}</ul>
+  {% endif %}
+  {% endif %}
+
+  {% include "_advisor_card.html" ignore missing %}
+
+  <h3>Valuation</h3>
+  <div class="kv">
+    {% if q.pe %}<div><span>P/E (trailing)</span><b>{{ "%.1f" | format(q.pe) }}</b></div>{% endif %}
+    {% if q.forward_pe %}<div><span>P/E (forward)</span><b>{{ "%.1f" | format(q.forward_pe) }}</b></div>{% endif %}
+    {% if q.price_to_sales %}<div><span>Price / sales</span><b>{{ "%.1f" | format(q.price_to_sales) }}</b></div>{% endif %}
+    <div><span>Market cap</span><b>{{ money(q.market_cap) }}</b></div>
+    {% if q.revenue_growth is not none %}<div><span>Revenue growth</span><b>{{ pct(q.revenue_growth) }}</b></div>{% endif %}
+    {% if q.profit_margin is not none %}<div><span>Profit margin</span><b>{{ pct(q.profit_margin, false) }}</b></div>{% endif %}
+    {% if q.dividend_yield %}<div><span>Dividend yield</span><b>{{ pct(q.dividend_yield, false) }}</b></div>{% endif %}
+    {% if q.beta %}<div><span>Beta</span><b>{{ "%.2f" | format(q.beta) }}</b></div>{% endif %}
+  </div>
+  {% if card.pos_52w is defined %}
+  <div class="range"><span class="m">52-week ${{ "{:,.2f}".format(q.low_52w) }}</span><div class="track"><i style="left:{{ 100 * card.pos_52w }}%"></i></div><span class="m">${{ "{:,.2f}".format(q.high_52w) }}</span></div>
+  {% endif %}
+
+  {% if q.returns and q.returns.oneYearTotalReturn is not none %}
+  <h3>Returns vs S&amp;P 500</h3>
+  <table><tr><th></th><th>5 days</th><th>1 month</th><th>3 months</th><th>YTD</th><th>1 year</th></tr>
+    <tr><td>{{ ticker }}</td>{% for p in ["fiveDaysReturn", "oneMonthReturn", "threeMonthReturn", "ytdReturnPct", "oneYearTotalReturn"] %}<td>{{ pct(q.returns[p]) }}</td>{% endfor %}</tr>
+    <tr><td class="muted">S&amp;P 500</td>{% for p in ["fiveDaysReturn", "oneMonthReturn", "threeMonthReturn", "ytdReturnPct", "oneYearTotalReturn"] %}<td class="muted">{{ pct(q.sp500_returns[p]) }}</td>{% endfor %}</tr></table>
+  {% endif %}
+  {% if q.eps %}{% set e = q.eps %}
+  <h3>Earnings outlook <span class="muted">(quarter ending {{ e.quarter_end }})</span></h3>
+  <div class="kv">
+    <div><span>EPS forecast</span><b>${{ "%.2f" | format(e.avg) }}{% if e.year_ago %} <span class="muted">vs ${{ "%.2f" | format(e.year_ago) }} a year ago</span>{% endif %}</b></div>
+    {% for d in [30, 90] %}{% set c = eps_change(e, d) %}{% if c is not none %}<div><span>Forecast change, {{ d }} days</span><b class="{{ 'positive' if c > 0.001 else ('negative' if c < -0.001 else '') }}">{{ pct(c) }}</b></div>{% endif %}{% endfor %}
+    <div><span>Analysts, last 30 days</span><b><span class="positive">{{ e.up_30 or 0 }} raised</span> · <span class="negative">{{ e.down_30 or 0 }} cut</span></b></div>
+  </div>
+  {% endif %}
+  {% if q.eps_history %}
+  <table><tr><th>Quarter</th><th>EPS</th><th>Forecast</th><th>Surprise</th></tr>
+  {% for h in q.eps_history | reverse %}{% if h.estimate is not none %}<tr><td>{{ h.quarter }}</td><td>${{ "%.2f" | format(h.actual) }}</td><td>${{ "%.2f" | format(h.estimate) }}</td>
+    <td class="{{ 'positive' if (h.surprise or 0) >= 0 else 'negative' }}">{{ pct(h.surprise) if h.surprise is not none else "–" }}</td></tr>{% endif %}{% endfor %}</table>
+  {% endif %}
+  {% if q.earnings_date %}<p class="m">Next earnings: <b>{{ q.earnings_date }}</b>{% if q.eps_estimate %} · EPS estimate {{ "%.2f" | format(q.eps_estimate) }}{% endif %}</p>{% endif %}
+</div>
+{% endif %}
+
+{% if owned %}
+<h2>Your position</h2>
+<div class="kv">
+  {% if position.shares %}<div><span>Shares</span><b>{{ "{:,.3f}".format(position.shares).rstrip("0").rstrip(".") }}</b></div>{% endif %}
+  <div><span>Value</span><b>${{ "{:,.0f}".format(position.value) }}</b></div>
+  <div><span>Of portfolio</span><b>{{ "%.1f" | format(position.weight * 100) }}%</b></div>
+  {% if position.gain is not none %}<div><span>Gain since purchase</span><b class="{{ 'positive' if position.gain >= 0 else 'negative' }}">{{ pct(position.gain) }}</b></div>{% endif %}
+</div>
+{% if through_funds %}<p>Through your funds: <b>${{ "{:,.0f}".format(through_funds.total_via) }}</b> more
+({% for s, v in through_funds.funds[:4] %}<a href="/fund/{{ s }}">{{ s }}</a> ${{ "{:,.0f}".format(v) }}{{ ", " if not loop.last }}{% endfor %}{% if through_funds.funds | length > 4 %}, …{% endif %})
+→ real exposure <b>${{ "{:,.0f}".format(through_funds.total) }}</b>, {{ "%.1f" | format(through_funds.share * 100) }}% of your portfolio.</p>{% endif %}
+<p class="m">{% if sentiment %}News sentiment, 7 days: <span class="positive">{{ sentiment.positive }} positive</span> · <span class="negative">{{ sentiment.negative }} negative</span> · <span class="mixed">{{ sentiment.mixed }} mixed</span>{% endif %}</p>
+
+<h2>News</h2>
+<p class="muted">Last 7 days · <a href="/search?q={{ name | urlencode }}&ticker={{ ticker }}">search {{ ticker }}</a></p>
+{% if summarized %}<h3>Summarized</h3>{% for s in summarized %}{{ story(s) }}{% endfor %}{% endif %}
+<h3>Other headlines</h3>
+{% for s in others %}{{ story(s) }}{% else %}<p class="muted">None.</p>{% endfor %}
+{% endif %}
+{% endblock %}

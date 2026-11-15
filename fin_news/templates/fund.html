@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ symbol }} <span class="muted">{{ fund.description.title() }}</span></h1>
+<div class="kv">
+  <div><span>Your value</span><b>${{ "{:,.0f}".format(fund.value) }}</b></div>
+  <div><span>Of portfolio</span><b>{{ "%.1f" | format(fund.weight * 100) }}%</b></div>
+  <div><span>News theme</span><b>{{ fund.theme }}</b></div>
+  {% if filing %}<div><span>Positions</span><b>{{ n }}</b></div>{% endif %}
+</div>
+{% if not filing %}
+<p class="muted">No holdings data: this pooled fund doesn't file with the SEC and has no public twin configured.</p>
+{% else %}
+<p class="m">Holdings as of <b>{{ filing.period }}</b> (SEC filing{% if proxy %} of <b>{{ proxy }}</b>, its public twin: approximate{% endif %}).</p>
+
+{% if overlap %}<h2>Your stocks in this fund</h2>
+<table><tr><th>Stock</th><th>Share of fund</th><th>Your slice</th></tr>
+{% for r in overlap %}<tr><td><a href="/holding/{{ r.ticker }}">{{ r.ticker }}</a> <span class="muted">{{ r.name }}</span></td><td>{{ "%.2f" | format(r.pct) }}%</td><td>${{ "{:,.0f}".format(r.mine) }}</td></tr>{% endfor %}
+</table>{% endif %}
+
+<h2>Largest positions</h2>
+<table><tr><th>Holding</th><th>Share of fund</th><th>Your slice</th></tr>
+{% for r in top %}<tr><td>{% if r.ticker %}<a href="/holding/{{ r.ticker }}">{{ r.ticker }}</a> {% endif %}<span class="{{ '' if not r.ticker else 'muted' }}">{{ r.name }}</span>{% if r.owned %} ★{% endif %}</td>
+<td>{{ "%.2f" | format(r.pct) }}%</td><td>${{ "{:,.0f}".format(r.mine) }}</td></tr>{% endfor %}
+</table>
+<p class="m">★ also held directly.</p>
+
+{% if assets %}<h2>Mix</h2>
+<div class="kv">{% for a, p in assets %}<div><span>{{ a | capitalize }}</span><b>{{ "%.0f" | format(p) }}%</b></div>{% endfor %}</div>
+{% if countries %}<p class="m">Countries: {% for c, p in countries %}{{ c }} {{ "%.0f" | format(p) }}%{{ ", " if not loop.last }}{% endfor %}</p>{% endif %}
+{% endif %}
+{% endif %}
+{% endblock %}

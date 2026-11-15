@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_money.html" import money_s, usd, tone %}
+{% block body %}
+{% set seg = "Performance" %}{% include "_seg.html" %}
+{% if not files %}
+<p class="muted">Drop Fidelity activity exports (Accounts → Activity &amp; Orders → History → Download, 90 days each)
+into <b>fin-news/fidelity/</b>, named Accounts_History…csv. A year of quarters gives every period.</p>
+{% elif not x %}
+<p class="muted">Daily prices for your holdings are collected in the morning run; this page fills in after it.</p>
+{% else %}
+<div class="chips">{% for k, ok in periods %}{% if ok %}<a href="/returns?p={{ k }}" class="{{ 'on' if k == p else '' }}">{{ k }}</a>{% else %}<span title="add older history files">{{ k }}</span>{% endif %}{% endfor %}</div>
+
+<div class="card">
+  <div class="m">{{ x.label | capitalize }} <span class="muted">({{ x.start.strftime("%b %-d, %Y") }} – {{ x.end.strftime("%b %-d") }})</span></div>
+  <div class="duo">
+    <div><span>Invested</span><b class="big">{{ usd(x.cost) }}</b><span class="m">{{ x.n }} buys{% if x.sold %} · sold {{ usd(x.sold) }}{% endif %}</span></div>
+    <div><span>Earned</span><b class="big {{ tone(x.earned) }}">{{ money_s(x.earned) }}</b>
+      {% if x.ret is not none %}<span class="m"><b class="{{ tone(x.ret) }}">{{ pct(x.ret) }}</b> · S&amp;P {{ pct(x.bench) }}</span>{% endif %}</div>
+  </div>
+  <div class="split" style="margin-top:10px">
+    <div><span>From what you already owned</span><span>{{ money_s(x.from_existing) }}</span></div>
+    <div><span>From new investments</span><span>{{ money_s(x.from_new) }}</span></div>
+    <div><span>Dividends &amp; interest</span><span>{{ money_s(x.income) }}</span></div>
+  </div>
+  <div class="m" style="margin-top:8px">Worth {{ usd(x.v0) }} → {{ usd(x.v1) }}; you added {{ usd(x.net_flow) }}, the rest you earned.</div>
+</div>
+
+{% if chart %}{% set c = chart %}
+<h2>Your dollars</h2>
+<svg class="chart dollars" viewBox="0 0 {{ c.w }} {{ c.h }}" role="img" aria-label="Value of your investments vs money put in and the S&P 500">
+  {% for y, label in c.ticks %}<line x1="4" x2="{{ c.right }}" y1="{{ y }}" y2="{{ y }}" class="grid"/><text x="{{ c.right + 4 }}" y="{{ y + 4 }}" class="lbl">{{ label }}</text>{% endfor %}
+  {% for xx, label in c.dates %}<text x="{{ xx }}" y="{{ c.h - 4 }}" class="lbl" text-anchor="{{ 'start' if loop.first else ('end' if loop.last else 'middle') }}">{{ label }}</text>{% endfor %}
+  <polyline points="{{ c.put_in }}" class="put"/>
+  <polyline points="{{ c.bench }}" class="bench"/>
+  <polyline points="{{ c.value }}" class="val"/>
+</svg>
+<div class="legend m">
+  <span><i class="sw line"></i>Worth {{ usd(c.end.value[1]) }}</span>
+  <span><i class="sw steps"></i>Put in {{ usd(c.end.put_in[1]) }}</span>
+  <span><i class="sw dash"></i>Same money in S&amp;P {{ usd(c.end.bench[1]) }}</span>
+</div>
+<p class="m">Gap between Worth and Put in: your price gain ({{ money_s(c.end.value[1] - c.end.put_in[1]) }}), plus {{ money_s(x.income) }} dividends.</p>
+{% endif %}
+
+{% if months %}
+<h2>Month by month</h2>
+<table class="months">
+<tr><th>Month</th><th>Added</th><th>Earned</th><th>Return</th><th>S&amp;P</th></tr>
+{% for m in months %}
+<tr><td>{{ m.label }}</td><td>{{ money_s(m.net_flow) }}</td><td class="{{ tone(m.earned) }}">{{ money_s(m.earned) }}</td>
+<td class="{{ tone(m.ret) }}">{{ pct(m.ret) if m.ret is not none else "–" }}</td><td class="muted">{{ pct(m.bench) }}</td></tr>
+{% endfor %}
+</table>
+<p class="m">Added: bought minus sold.</p>
+{% endif %}
+
+<div class="card">
+  <div class="m">New investments · {{ x.label }}</div>
+  {% set st = x.settled %}
+  {% if st.n %}<div><b>{{ usd(st.cost) }}</b> invested 30+ days ago → <b class="{{ tone(st.gain) }}">{{ money_s(st.gain) }} ({{ pct(st.pct) }})</b>
+    <span class="muted">· same money in S&amp;P {{ pct(st.bench_pct) }}</span></div>
+  {% set diff = st.gain - st.bench_gain %}
+  <div class="verdict {{ tone(diff) }}">{{ "✅" if diff >= 0 else "⚠️" }} {{ money_s(diff) }} {{ "ahead of" if diff >= 0 else "behind" }} the index · {{ st.beat }} of {{ st.n }} buys beat it</div>{% endif %}
+  {% if x.fresh.n %}<div class="m">Plus {{ usd(x.fresh.cost) }} from the last {{ fresh_days }} days ({{ x.fresh.n }} buys): too new to judge.</div>{% endif %}
+  <a href="/money?first={{ x.start }}&last={{ x.end }}" class="m">See each buy vs the S&amp;P →</a>
+</div>
+
+<p class="m" style="margin-top:16px">The accounts counted for returns (your settings); history {{ covered_from.strftime("%b %-d, %Y") }} – {{ files[-1].last.strftime("%b %-d, %Y") }}{% if gaps %},
+<span class="negative">with a gap {% for a, b in gaps %}{{ a }} – {{ b }}{% endfor %}</span>{% endif %}.
+{% if x.approximate %}Approximate prices (not on Yahoo): {{ x.approximate | join(", ") }}.{% endif %}</p>
+{% endif %}
+{% endblock %}

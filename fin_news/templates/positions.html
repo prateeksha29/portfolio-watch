@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_money.html" import money_s, usd, tone %}
+{% from "_tools.html" import toolbar %}
+{% block body %}
+{% set seg = "Positions" %}{% include "_seg.html" %}
+{% if not rows %}
+<p class="muted">Needs a Fidelity positions export in <b>fin-news/fidelity/</b> and the morning price run.</p>
+{% else %}
+<div class="card" id="pos-card" data-live>
+  <div class="m">Your investments · {{ as_of or "close of " ~ end.strftime("%b %-d") }}{% if newer %} · <span title="{{ newer | join(', ') }}">{{ newer | length }} stocks at newer prices</span>{% endif %}</div>
+  <div class="big">{{ usd(value) }}</div>
+  <div><b class="{{ tone(day) }}">{{ money_s(day) }}{% if day_pct is not none %} ({{ pct(day_pct) }}){% endif %}</b>{% if day_date %} <span class="muted">on {{ day_date.strftime("%a, %b %-d") }}</span>{% endif %}{% if pending %} · <span class="muted" title="{{ pending | join(', ') }}">{{ pending | length }} without a {{ day_date.strftime("%b %-d") }} price yet (counted unchanged)</span>{% endif %}</div>
+  <div class="split" style="margin-top:10px">
+    <div><span>What you paid (cost basis)</span><span>{{ usd(basis) }}</span></div>
+    <div><span><b>Gain since you bought</b></span><span class="{{ tone(gain) }}"><b>{{ money_s(gain) }}{% if gain_pct is not none %} ({{ pct(gain_pct) }}){% endif %}</b></span></div>
+    <div><span>Cash, as of the {{ positions_date.strftime("%b %-d") }} export{% if pending_cash %} <span class="muted">(incl. {{ money_s(pending_cash) }} unsettled trades)</span>{% endif %}</span><span>{{ usd(cash) }}</span></div>
+  </div>
+  {% if conc.top %}<div class="m" style="margin-top:8px">Concentration: largest {{ conc.top[0] }} {{ "%.0f" | format(100 * conc.top[1]) }}%{% for n, wt in conc.groups %} · {{ n }} {{ "%.0f" | format(100 * wt) }}%{% endfor %}</div>{% endif %}
+</div>
+
+{{ toolbar("position-rows", [("value", "Value", "Default", "asc"), ("gain", "Gain $", "Gain", "desc"), ("pct", "Gain %", "Pct", "desc"),
+   ("up", "Today: up most", "Day", "desc"), ("down", "Today: down most", "Day", "asc")], prices, "/positions", auto) }}
+<ul class="rows" id="position-rows" data-live>
+{% for h in rows %}
+<li data-s-gain="{{ h.gain if h.gain is not none else '' }}" data-s-pct="{{ h.gain_pct if h.gain_pct is not none else '' }}"
+    data-s-day="{{ h.day_pct if h.day_pct is not none and not h.pending else '' }}"><details><summary>
+  <span><span class="sym">{{ h.symbol }}</span> <span class="muted">{{ names.get(h.symbol, h.name) }}</span></span>
+  <span class="num"><b>{{ usd(h.value) }}</b></span>
+  <span class="sub">{{ "%.1f" | format(100 * h.weight) }}% · {{ "{:,.3f}".format(h.shares).rstrip("0").rstrip(".") }} sh{% if h.price %} @ ${{ "{:,.2f}".format(h.price) }}{% endif %}{% if h.day is not none %} · day <span class="{{ tone(h.day) }}">{{ pct(h.day_pct) }}</span>{% if h.pending %} <span class="muted">({{ h.day_date.strftime("%b %-d") }}; {{ day_date.strftime("%b %-d") }} pending)</span>{% endif %}{% endif %}</span>
+  <span class="sub">{% if h.gain is not none %}<span class="{{ tone(h.gain) }}">{{ money_s(h.gain) }} ({{ pct(h.gain_pct) }})</span> since bought · avg cost ${{ "{:,.2f}".format(h.avg_cost) }}{% else %}no cost basis in the export{% endif %}</span>
+</summary>
+<div class="split" style="padding:0 0 10px">
+  <div><span>Cost basis</span><span>{{ usd(h.basis) if h.basis is not none else "–" }}</span></div>
+  <div><span>{{ "Change on " ~ h.day_date.strftime("%b %-d") if h.day_date else "Day change" }}</span><span class="{{ tone(h.day) }}">{{ money_s(h.day) if h.day is not none else "–" }}</span></div>
+  <div><span>Price</span><span>{{ "${:,.2f}".format(h.price) if h.price else "–" }}{% if h.approximate %} <span class="muted">(last trade/export)</span>{% endif %}</span></div>
+</div>
+<a href="/{{ 'fund' if h.symbol in funds else 'holding' }}/{{ h.symbol }}" class="m">Open {{ h.symbol }}</a>
+</details></li>
+{% endfor %}
+</ul>
+<p class="m" style="margin-top:16px">The accounts counted for returns (your settings), from your {{ positions_date.strftime("%b %-d") }} Fidelity export. Gain matches Fidelity's total gain/loss.
+{% if no_basis %}No cost basis for {{ no_basis | join(", ") }}.{% endif %}</p>
+{% endif %}
+{% endblock %}

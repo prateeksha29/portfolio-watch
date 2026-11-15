@@ -1,0 +1,5 @@
+{% macro money_s(v) %}<span style="white-space:nowrap">{{ "+" if v >= 0 else "−" }}${{ "{:,.0f}".format(v | abs) }}</span>{% endmacro %}
+{% macro usd(v) %}${{ "{:,.0f}".format(v) }}{% endmacro %}
+{% macro tone(v) %}{{ '' if v is none else ('positive' if v >= 0 else 'negative') }}{% endmacro %}
+{% macro vsbar(vs, scale) %}{% if vs is not none %}{% set w = [50 * (vs | abs) / scale, 50] | min %}
+<div class="vsbar"><i style="{{ 'left:50%' if vs >= 0 else 'right:50%' }};width:{{ w }}%;background:var({{ '--pos' if vs >= 0 else '--neg' }})"></i></div>{% endif %}{% endmacro %}

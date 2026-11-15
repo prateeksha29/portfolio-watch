@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Ask</h1>
+<p class="muted">Answers from your stored articles, with sources.</p>
+<form class="row slow" method="post" action="/ask">
+  <input type="text" name="q" value="{{ q }}" placeholder="e.g. What did Apple say about demand?">
+  <button>Ask</button>
+</form>
+<p class="wait">Thinking… up to a minute if the model has to load.</p>
+{% if answer %}<div class="card md">{{ answer_html }}</div>
+<h2>Sources</h2><ol>{% for h in hits %}<li><a href="{{ h.url }}">{{ h.title }}</a> <span class="muted">{{ h.source }}, {{ h.published[:10] }}</span></li>{% endfor %}</ol>{% endif %}
+{% endblock %}

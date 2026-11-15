@@ -1,0 +1,228 @@
+# fin-news configuration.
+# Run:     .venv/bin/python -m fin_news run
+# Copy to config.toml and edit. Secrets live in .env (see .env.example), not here.
+# People: python -m fin_news adduser <name> [--admin]; each person's settings are in users/<name>/user.toml.
+
+
+# Extra tickers to follow that aren't in the CSV.
+tickers = []
+
+# Themes everyone follows (each person adds their own in users/<name>/user.toml; funds add theirs)
+topics = [
+  "Federal Reserve interest rate decision",
+  "US inflation CPI report",
+  "US jobs report and unemployment",
+]
+
+# Funds have no ticker news, so they are mapped to a theme by their description (first match wins).
+fund_themes = [
+  { match = "TREASURY|\\bTREAS\\b|BOND|\\bBD\\b", theme = "US Treasury yields and bond market" },
+  { match = "INTL|INTERNATIONAL|EMERGING|EX[ -]US|GLOBAL", theme = "international stock markets" },
+  { match = "SEMICONDUCT", theme = "semiconductor industry" },
+  { match = "TECH HARDWARE", theme = "technology hardware companies" },
+  { match = "TECH", theme = "technology sector stocks" },
+  { match = "500 INDEX", theme = "S&P 500 stock market" },
+  { match = "GROWTH|\\bGR\\b|BLUE CHIP|CONTRA|RUS 1000", theme = "US large-cap growth stocks" },
+]
+
+# Tickers that are also common words: only matched as $TICK, (TICK) or NASDAQ:TICK, never bare.
+ambiguous_tickers = ["MU", "META", "ON", "ALL", "NOW", "IT", "KEY", "WELL"]
+
+# Content farms, auto-generated stock pages and user posts (from the 2026-10-19 source counts). Not dropped: ranked
+# lower within each digest section, so a reported story from a newsroom shows first.
+low_quality_sources = [
+  "ad-hoc-news.de", "MarketBeat", "TradingKey", "Pluang", "BigGo Finance", "Moomoo", "富途牛牛", "Kalkine Media",
+  "Traders Union", "Stock Traders Daily", "Intellectia AI", "Unisba Media", "ChartMill", "shattered.io", "jawlah.co",
+  "SuaraGarut.ID", "TOKENPOST", "Finbold", "Startup Fortune", "FXLeaders", "equiti.com", "Opening Bell Daily",
+  "tech-insider.org", "Quiver Quantitative", "Stocks Down Under", "FourWeekMBA", "Beinsure", "Brand Icon Image",
+  "EIN News", "openPR", "Coinpedia", "The Crypto Times",
+]
+
+# Company names and aliases used for search queries and tagging. The first entry is the display name.
+# Aliases are matched case-sensitively as whole words.
+[aliases]
+AAPL = ["Apple"]
+MSFT = ["Microsoft", "Azure"]
+NVDA = ["Nvidia", "NVIDIA"]
+GOOGL = ["Alphabet", "Google", "YouTube", "GOOG"]
+AMZN = ["Amazon", "AWS"]
+META = ["Meta Platforms", "Meta", "Facebook", "Instagram", "WhatsApp"]
+
+[sources]
+yahoo = true
+nasdaq = true
+seeking_alpha = true
+google_news = true
+google_news_fool = false     # replaced by fool_sitemap (Google News links give no article text)
+fool_sitemap = true          # fool.com news sitemap: every free article and earnings call transcript, with tickers
+finnhub = true
+reddit_subreddits = ["stocks", "investing", "semiconductors", "wallstreetbets"]
+
+# General feeds. kind: news | analysis | press_release | macro
+feeds = [
+  { name = "Federal Reserve", url = "https://www.federalreserve.gov/feeds/press_all.xml", kind = "macro" },
+  { name = "BLS", url = "https://www.bls.gov/feed/bls_latest.rss", kind = "macro" },
+  { name = "CNBC", url = "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114", kind = "news" },
+  # CNBC's sections: free articles the app can read and summarize, so they often lead a story over Google News links
+  { name = "CNBC Technology", url = "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910", kind = "news" },
+  { name = "CNBC Investing", url = "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839069", kind = "news" },
+  { name = "CNBC Earnings", url = "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839135", kind = "news" },
+  { name = "EE Times", url = "https://www.eetimes.com/feed/", kind = "news" },   # chip industry
+  { name = "TechCrunch AI", url = "https://techcrunch.com/category/artificial-intelligence/feed/", kind = "news" },
+  { name = "MarketWatch", url = "https://feeds.content.dowjones.io/public/rss/mw_topstories", kind = "news" },
+  { name = "Investing.com", url = "https://www.investing.com/rss/news.rss", kind = "news" },
+  { name = "Benzinga", url = "https://www.benzinga.com/feed", kind = "news" },
+  { name = "Seeking Alpha Market Currents", url = "https://seekingalpha.com/market_currents.xml", kind = "news" },
+  { name = "PR Newswire", url = "https://www.prnewswire.com/rss/news-releases-list.rss", kind = "press_release" },
+  { name = "Motley Fool", url = "https://api.fool.com/feeds/foolwatch?apikey=foolwatch-feed", kind = "analysis" },
+]
+
+# When the same story comes from several sources, the main link is picked from the earliest source in this list.
+source_priority = [
+  "SEC EDGAR", "PR Newswire", "Business Wire", "Federal Reserve", "BLS", "CNBC", "MarketWatch",
+  "Yahoo Finance", "Nasdaq", "EE Times", "TechCrunch", "Benzinga", "Finnhub", "Seeking Alpha", "Investing.com",
+  "Motley Fool", "Google News", "Reddit",
+]
+
+[sec]
+forms = ["8-K", "10-Q", "10-K", "4", "6-K", "20-F", "40-F"]
+lookback_days = 2
+
+[fred]
+series = [
+  { id = "SP500", name = "S&P 500", transform = "level" },
+  { id = "VIXCLS", name = "VIX", transform = "level" },
+  { id = "DGS10", name = "10-year Treasury yield (%)", transform = "level" },
+  { id = "DGS2", name = "2-year Treasury yield (%)", transform = "level" },
+  { id = "DFF", name = "Fed funds rate (%)", transform = "level" },
+  { id = "CPIAUCSL", name = "CPI inflation", transform = "yoy" },
+  { id = "UNRATE", name = "Unemployment rate (%)", transform = "level" },
+  { id = "DCOILWTICO", name = "WTI crude oil ($)", transform = "level" },
+]
+
+[fetch]
+full_text = true
+max_full_text_per_run = 120   # ~60% succeed; enough for the 60 summaries
+delay_seconds = 1.0          # pause between requests to the same site
+timeout_seconds = 20
+max_parallel_hosts = 8
+max_age_days = 3             # ignore feed items older than this
+# Never download article pages from these sites (paywalls, bot walls, redirects, or terms).
+fulltext_skip_hosts = [
+  "news.google.com", "reddit.com", "sec.gov", "finnhub.io", "seekingalpha.com", "investing.com",
+  "wsj.com", "bloomberg.com", "ft.com", "barrons.com", "reuters.com", "nytimes.com",
+  "economist.com", "investors.com",
+]
+
+[fetch.host_delays]
+"data.sec.gov" = 0.15
+"www.sec.gov" = 0.15
+"api.stlouisfed.org" = 0.5
+"news.google.com" = 1.5
+"www.reddit.com" = 6.0
+"finance.yahoo.com" = 2.5
+"www.google.com" = 2.0
+
+[embedding]
+model = "Qwen/Qwen3-Embedding-0.6B"   # the model the stored vectors come from (checked against the database)
+served_model = "qwen/Qwen3-Embedding-0.6B"   # its name on the [llm] base_url server, which does the embedding
+# base_url = "http://localhost:8080/v1"   # its own server (needed when [llm] is a hosted API); api_key_env for it
+wait_seconds = 900           # how long a run waits for llama-swap (busy GPU, model loading) before leaving its articles
+                             # for the next run; Search and Ask in the web app wait at most 60 s
+dim = 1024                   # Qwen3-Embedding: 1024 / 512 / 256. Changing it requires a new database.
+batch_size = 32
+max_chars = 6000
+
+[filter]
+# Thresholds retuned for Qwen3-Embedding at 1024 dims on the benchmark (2026-11-02); the Gemma values were
+# dedup 0.78, ticker_text_min 0.20, topic_min 0.30, topic_min_z 2.0.
+dedup_threshold = 0.65       # mean-centered headline similarity at which two articles count as the same story
+dedup_mask_min = 0.30        # ...and with holdings' names masked out ("Company CEO maps out...") at least this
+                             # similar, so one company's unrelated headlines aren't merged (2026-11-03)
+dedup_window_hours = 36      # ...and only if published within this many hours of each other
+# Relevance uses mean-centered cosine: unrelated articles score ~0, headline-named ones median ~0.33.
+# Calibrated on 3,899 articles (2026-10-15) by reading sample titles in each score band.
+# A holding named in the headline always counts; articles that never name a holding can't be attributed to one.
+ticker_text_min = 0.14       # named only in the summary: must be the article's best-matching holding and score >= this
+topic_min = 0.26             # topic match: centered similarity >= this ...
+topic_min_z = 2.0            # ... and standing out from the other topics by z >= this
+# Headlines that never count for a theme: other countries' macro data, crypto/commodity/forex trading notes and
+# "top movers" lists (found in the 2026-10-15 audit under the CPI, jobs and S&P 500 themes).
+topic_exclude = '\b(Canada|Canadian|TSX|UK|U\.K\.|Britain|British|Australia|Australian|India|Indian|Eurozone|Bitcoin|BTC|Crypto|Ethereum|Altcoins?|Gold|Silver|Yen|Forex|XAUUSD)\b|(?i:unusual volume|top (gainers|losers|movers)|showing activity before|gapping)'
+
+[llm]
+# Local models behind an OpenAI-compatible API (llama-swap here: it loads models on demand on one GPU).
+enabled = true
+base_url = "http://localhost:8080/v1"   # any OpenAI-compatible server: llama-swap, llama.cpp, vLLM, Ollama...
+# Chosen 2026-10-15 from a 20-story comparison (reports/llm-comparison.md): all three candidates returned
+# valid JSON and no invented figures, but E4B dropped the risk side of stories and over-labelled them positive;
+# the 26B kept it (2.3 s/story). Qwen3.6-35B was similar in quality at ~3x the time.
+model = "unsloth/Qwen3.8-27B"   # story and filing summaries; gemma-4-26B-A4B until 2026-11-03 (benchmark: facts covered 0.85 vs 0.58, held-out)
+fallback_model = "unsloth/gemma-4-26B-A4B"   # used only if the main model isn't served
+# Ask (one question at a time, reasoning over positions and news): a dense 27B. On 2026-10-20 it gave the most
+# specific, best-reasoned answer to a position question (17.6 s vs 6.7 s for the 26B-A4B, which was generic).
+ask_model = "unsloth/Qwen3.8-27B"
+ask_fallback_model = "unsloth/gemma-4-26B-A4B"
+api_key_env = ""             # name of an env var holding an API key, if the endpoint needs one
+# provider = "openai"        # "openai": any OpenAI-compatible server (base_url); "anthropic": Claude (pip install anthropic)
+# local = true               # false for a hosted OpenAI-compatible API (api.openai.com): no llama.cpp-only settings
+# effort = "low"             # Claude: summaries; ask_effort = "high" for Ask
+# min_output_tokens = 16000  # hosted APIs: room for the model's reasoning before the answer
+thinking = false             # Gemma 4 thinks by default; off keeps answers short and JSON-only
+max_stories = 80              # the digest shows ~80-100 stories; summaries follow display order
+min_text_chars = 300         # skip stories with only a headline and snippet: the summary would restate the headline
+parallel = 1                 # requests in flight; 4 gave no speedup on 2026-10-19 (llama-swap answers one at a time)
+max_article_chars = 20000
+timeout_seconds = 300        # first call may wait while llama-swap loads the model
+
+[digest]
+max_per_section = 3          # stories per holding, most important first; the rest are counted
+max_per_topic = 2
+max_analysis = 6
+upcoming_earnings_days = 7
+
+[retention]                  # applied after every run
+article_days = 14            # delete articles, stories and earnings dates older than this
+digest_days = 3              # delete digest files older than this (latest.md is kept)
+run_log_days = 30            # run history shown on the web app's Status page
+
+[search]
+recency_half_life_days = 30
+
+# Ideas tab: new stock ideas once a day, from insider buying in stocks you don't own (Finviz's insider page, one
+# fetch a day). Each idea gets one Yahoo snapshot, then again 30 days later for the scorecard.
+[discovery]
+enabled = true
+refresh_hour = 6
+insider_days = 30             # insider buys add up over this many days
+min_market_cap = 1e9          # skip smaller companies
+min_price = 5
+cluster_min_value = 1e5       # 2+ insiders together bought at least this much...
+senior_min_value = 2.5e5      # ...or a CEO, CFO, president or chair bought at least this much
+max_priced = 40               # Yahoo snapshots per day for ideas
+
+# Holdings -> Returns: what you earned and how new investments did vs the S&P 500, from Fidelity activity exports.
+[returns]                    # accounts and groups are per person (users/<name>/user.toml)
+keep_days = 430              # daily closes kept this long (a year of history plus margin)
+
+[market]                     # price, valuation and analyst targets per stock (Yahoo Finance analysis page)
+enabled = true
+refresh_hours = [6, 14]      # the first run at or after each local hour fetches every holding: 6 am before the
+                             # open (analyst actions), 2 pm after the 1 pm PT close (that day's prices)
+keep_days = 120              # daily closes and snapshots older than this are deleted
+# The chart's first month comes from Google Finance (one page per stock, once); later days from the snapshots.
+
+[funds]                      # what the funds hold: SEC Form N-PORT, quarterly, public ~60 days after quarter end
+refresh_days = 30            # check each fund for a newer filing this often
+# Pooled funds (collective trusts in a 401(k)) don't file with the SEC: map each one's CUSIP to the public fund with
+# the same manager and strategy, or the same index, e.g. { "123456789" = "VFIAX" }.
+proxies = {}
+# Fund filings that name a company differently from the SEC ticker list (renamed or abbreviated).
+names = { "GE Aerospace" = "GE", "IBM" = "IBM", "Gallagher (Arthur J.)" = "AJG", "Bank New York Mellon" = "BK" }
+
+[web]                        # phone web app: python -m fin_news.web (kept running by cron, see web.sh)
+host = "0.0.0.0"             # reachable from the home network; each person signs in with their own password
+proxy = ""                   # IP of the machine running an https reverse proxy (nginx...); only it is believed about https
+direct_access = true         # false once https works: then only the proxy (and this machine) can connect
+port = 8050
+public_url = ""              # the app's https address, e.g. "https://news.example.com"

@@ -1,0 +1,2 @@
+<h1>Ideas</h1>
+<div class="seg">{% for href, label in [("/ideas", "New"), ("/ideas?view=watching", "Watching")] + ([advisor.tab] if advisor is defined else []) %}<a href="{{ href }}" class="{{ 'on' if label == seg else '' }}">{{ label }}</a>{% endfor %}</div>

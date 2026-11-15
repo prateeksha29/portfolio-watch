@@ -1,0 +1,16 @@
+# The app (Python 3.12)
+feedparser
+trafilatura
+requests
+lxml
+sqlite-vec
+numpy
+fastapi
+uvicorn
+jinja2
+markupsafe
+markdown-it-py
+python-multipart   # file uploads on the Files page
+# Optional
+anthropic          # [llm] provider = "anthropic" (Claude)
+httpx              # scripts/e2e_test.py (FastAPI's test client)

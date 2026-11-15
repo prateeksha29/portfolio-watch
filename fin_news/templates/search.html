@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Search</h1>
+<form class="row slow" action="/search">
+  <input type="text" name="q" value="{{ q }}" placeholder="Micron HBM pricing, or a ticker: AMD" autofocus>
+  <select name="ticker" style="flex:none;width:96px"><option value="">All</option>
+  {% for t in tickers %}<option {{ 'selected' if t == ticker else '' }}>{{ t }}</option>{% endfor %}</select>
+  <button>Go</button>
+</form>
+<p class="wait">Searching… (the first search after a restart loads the model, ~20 s)</p>
+{% if companies %}<div class="card"><div class="m">Stocks matching “{{ q }}”</div>
+{% for t, name in companies %}<div><a href="/holding/{{ t }}"><b>{{ t }}</b> {{ name }}</a> · price, chart and targets</div>{% endfor %}</div>{% endif %}
+{% for h in hits %}
+<div class="card"><div class="t"><a href="{{ h.url }}">{{ h.title }}</a></div>
+<div class="m">{{ h.source }} · {{ h.published[:10] }} · match {{ "%.2f" | format(h.similarity) }}</div></div>
+{% else %}{% if q %}<p class="muted">No matches in the last {{ days }} days.</p>{% endif %}{% endfor %}
+{% endblock %}
