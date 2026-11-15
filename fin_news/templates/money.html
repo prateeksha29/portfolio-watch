@@ -4,7 +4,7 @@
 {% block body %}
 {% set seg = "Buys vs S&P" %}{% include "_seg.html" %}
 {% if lots is none %}
-<p class="muted">Needs Fidelity activity exports in <b>fin-news/fidelity/</b> and the morning price run.</p>
+<p class="muted">Needs Fidelity activity exports (upload them on <a href="/files">Your files</a>) and the morning price run.</p>
 {% else %}
 <div class="m">Money I invested…</div>
 <div class="chips wrap">{% for k, (label, _, _) in windows.items() %}<a href="/money?w={{ k }}" class="{{ 'on' if k == w else '' }}">{{ label }}</a>{% endfor %}</div>

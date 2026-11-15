@@ -225,7 +225,7 @@ def manifest():
     icon = lambda name, size, purpose: {"src": f"/static/{name}", "sizes": f"{size}x{size}", "type": "image/png",
                                         "purpose": purpose}
     return JSONResponse({
-        "id": "/", "name": "Fin News", "short_name": "Fin News", "start_url": "/", "scope": "/",
+        "id": "/", "name": "Portfolio Watch", "short_name": "Portfolio Watch", "start_url": "/", "scope": "/",
         "description": "News, positions and returns for your portfolio", "display": "standalone",
         "orientation": "portrait", "background_color": "#0b1120", "theme_color": "#0f172a",
         "icons": [icon("icon-192.png", 192, "any"), icon("icon-512.png", 512, "any"),

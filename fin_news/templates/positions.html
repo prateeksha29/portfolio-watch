@@ -4,7 +4,7 @@
 {% block body %}
 {% set seg = "Positions" %}{% include "_seg.html" %}
 {% if not rows %}
-<p class="muted">Needs a Fidelity positions export in <b>fin-news/fidelity/</b> and the morning price run.</p>
+<p class="muted">Needs a Fidelity positions export (upload it on <a href="/files">Your files</a>) and the morning price run.</p>
 {% else %}
 <div class="card" id="pos-card" data-live>
   <div class="m">Your investments · {{ as_of or "close of " ~ end.strftime("%b %-d") }}{% if newer %} · <span title="{{ newer | join(', ') }}">{{ newer | length }} stocks at newer prices</span>{% endif %}</div>

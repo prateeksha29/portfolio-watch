@@ -1,4 +1,4 @@
-# fin-news configuration.
+# Portfolio Watch configuration.
 # Run:     .venv/bin/python -m fin_news run
 # Copy to config.toml and edit. Secrets live in .env (see .env.example), not here.
 # People: python -m fin_news adduser <name> [--admin]; each person's settings are in users/<name>/user.toml.

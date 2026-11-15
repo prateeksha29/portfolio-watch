@@ -1,4 +1,4 @@
-# Holdings Brief
+# Portfolio Watch
 
 Local news pipeline and phone web app for Fidelity portfolios. Three times a day it collects US market news, SEC
 filings and macro data for everyone's stocks and fund themes, groups duplicate stories with an embedding model,
@@ -73,9 +73,9 @@ still appears. `scripts/e2e_test.py` runs on such copies.
 ## Schedule and phone app
 
 ```
-0 6,14,18 * * * /path/to/fin-news/run.sh   # collect, summarize, write digests, apply retention
-*/5 * * * *     /path/to/fin-news/web.sh   # keeps the web app running (exits at once if it already is)
-@reboot         /path/to/fin-news/web.sh
+0 6,14,18 * * * /path/to/portfolio-watch/run.sh   # collect, summarize, write digests, apply retention
+*/5 * * * *     /path/to/portfolio-watch/web.sh   # keeps the web app running (exits at once if it already is)
+@reboot         /path/to/portfolio-watch/web.sh
 ```
 
 The web app (`python -m fin_news.web`, FastAPI, port 8050) has the digest, holdings with per-stock pages (chart,

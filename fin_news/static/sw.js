@@ -1,4 +1,4 @@
-// Fin News service worker: makes the app installable and keeps a copy of every page for offline use.
+// Portfolio Watch service worker: makes the app installable and keeps a copy of every page for offline use.
 // - Pages: fetched fresh when the server answers; otherwise (or after 10 s) the saved copy is shown.
 // - Saving: the pages ask for a sync on load; at most every 20 minutes the worker fetches the list of all pages
 //   (/offline-urls) and saves each one, dropping pages no longer listed.

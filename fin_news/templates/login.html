@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fin News</title>
+<title>Portfolio Watch</title>
 <style>
 body { margin:0; min-height:100vh; display:grid; place-items:center; background:#0b1120; color:#e5e7eb;
        font:16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -10,7 +10,7 @@ input { background:#111827; color:#e5e7eb; } button { background:#2563eb; color:
 .err { color:#f87171; }
 </style></head>
 <body><form method="post" action="/login">
-<h1 style="margin:0">Fin News</h1>
+<h1 style="margin:0">Portfolio Watch</h1>
 {% if error %}<div class="err">Wrong name or password.</div>{% endif %}
 <input type="text" name="name" placeholder="Name" value="{{ name or '' }}" autocapitalize="none" autocorrect="off" autocomplete="username" required {{ '' if name else 'autofocus' }}>
 <input type="password" name="password" placeholder="Password" autocomplete="current-password" {{ 'autofocus' if name else '' }}>

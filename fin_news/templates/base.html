@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Fin News">
+<meta name="apple-mobile-web-app-title" content="Portfolio Watch">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
-<title>{{ title }} · Fin News</title>
+<title>{{ title }} · Portfolio Watch</title>
 <style>
 :root { --bg:#f8fafc; --card:#fff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0; --accent:#2563eb;
         --pos:#15803d; --neg:#b91c1c; --mix:#a16207; }
@@ -143,7 +143,7 @@ a.needs-net { opacity:.4; pointer-events:none; } .net-note { margin-top:-8px; }
 </style>
 </head>
 <body data-generated="{{ generated }}">
-<header class="top"><a class="brand" href="/">Fin News</a>
+<header class="top"><a class="brand" href="/">Portfolio Watch</a>
 <a class="icon{{ ' on' if active == '/search' else '' }}" href="/search" aria-label="Search"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a></header>
 <nav class="tabs">
 {% for href, label, icon in [("/", "Digest", "digest"), ("/holdings", "Holdings", "holdings"), ("/ideas", "Ideas", "ideas"), ("/ask", "Ask", "ask")] %}
@@ -199,7 +199,7 @@ function markForms(on) {
   document.querySelectorAll("form").forEach(f => {
     f.querySelectorAll("input, button, select, textarea").forEach(el => el.disabled = on);
     const note = f.nextElementSibling && f.nextElementSibling.classList.contains("net-note") ? f.nextElementSibling : null;
-    if (on && !note) f.insertAdjacentHTML("afterend", '<p class="net-note m">Needs a connection to the Fin News server.</p>');
+    if (on && !note) f.insertAdjacentHTML("afterend", '<p class="net-note m">Needs a connection to the Portfolio Watch server.</p>');
     if (!on && note) note.remove();
   });
 }
